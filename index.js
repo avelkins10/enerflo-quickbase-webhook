@@ -74,7 +74,7 @@ const getAddressData = (proposal) => {
 const findAdderAmount = (adders, name) => {
   if (!adders) return 0;
   const adder = adders.find(a => a.displayName === name);
-  return adder ? adder.amount : 0;
+  return adder ? (adder.amount || 0) : 0;
 };
 
 const findFileUrl = (files, source) => {
@@ -250,19 +250,19 @@ function transformWebhookToQuickBase(webhook) {
     108: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.valueAdders, 'Tree Trimming') }, // Tree Trimming Cost
     110: { value: deal.state?.['additional-work-substage']?.['tree-removal-contractor-phone-number'] || '' }, // Tree Contractor Phone
     49: { value: deal.state?.['additional-work-substage']?.['how-many-optional-electrical-upgrades-are-needed'] || 0 }, // Electrical Upgrades Count
-    50: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Electrical Upgrade If Needed') }, // Electrical Upgrades Total
+    50: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Electrical Upgrade If Needed') || 0 }, // Electrical Upgrades Total
     111: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName === 'Electrical Upgrade If Needed')?.costPerUpgrade || 0 }, // Electrical Cost Each
-    51: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Metal Roof Adder') }, // Metal Roof Adder
+    51: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Metal Roof Adder') || 0 }, // Metal Roof Adder
     112: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName === 'Metal Roof Adder')?.ppw || 0 }, // Metal Roof PPW
-    52: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Trenching') }, // Trenching Cost
+    52: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Trenching') || 0 }, // Trenching Cost
     113: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Trenching'))?.fieldInputs?.['how-many-feet-of-trenching'] || 0 }, // Trenching Linear Feet
     114: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Trenching'))?.displayName || '' }, // Trenching Type
-    115: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'HVAC') }, // HVAC Cost
+    115: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'HVAC') || 0 }, // HVAC Cost
     116: { value: deal.state?.['additional-work-substage']?.['hvac-contractor-name'] || '' }, // HVAC Contractor
-    117: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Sub Panel') }, // Sub Panel Cost
-    118: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Generator') }, // Generator Cost
+    117: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Sub Panel') || 0 }, // Sub Panel Cost
+    118: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Generator') || 0 }, // Generator Cost
     119: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Generator'))?.displayName || '' }, // Generator Type
-    120: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Re-Roof') }, // Re Roof Cost
+    120: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.systemAdders, 'Re-Roof') || 0 }, // Re Roof Cost
     
     // Finance Info
     135: { value: proposal?.pricingOutputs?.financeProduct?.financeMethodName || '' }, // Finance Type
