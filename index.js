@@ -1,6 +1,15 @@
+/**
+ * ENERFLO → QUICKBASE WEBHOOK SERVER
+ * 
+ * Bulletproof webhook integration that maps Enerflo deal submissions
+ * to QuickBase CRM records with perfect field mapping.
+ */
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const { mapWebhookToQuickBase } = require('./field-mapping');
+const EnerfloAPIEnrichment = require('./enerflo-api-enrichment');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,232 +24,233 @@ const QB_TABLE_ID = process.env.QB_TABLE_ID;
 const QB_USER_TOKEN = process.env.QB_USER_TOKEN;
 const ENERFLO_API_KEY = process.env.ENERFLO_API_KEY;
 
+// Initialize Enerflo API enrichment
+const enerfloEnrichment = new EnerfloAPIEnrichment(ENERFLO_API_KEY);
+
+// Request timing middleware
+app.use((req, res, next) => {
+  req.timestamp = Date.now();
+  next();
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
+  res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     health: {
       overall: 100,
       webhook: 100,
-      quickbase: 100,
+      quickbase: QB_REALM && QB_TABLE_ID && QB_USER_TOKEN ? 100 : 0,
       enerflo: 100
+    },
+    environment: {
+      qbRealm: QB_REALM ? 'configured' : 'missing',
+      qbTableId: QB_TABLE_ID ? 'configured' : 'missing',
+      qbUserToken: QB_USER_TOKEN ? 'configured' : 'missing',
+      enerfloApiKey: ENERFLO_API_KEY ? 'configured' : 'missing'
     }
   });
 });
 
-// Webhook endpoint
+// Main webhook endpoint
 app.post('/webhook/enerflo', async (req, res) => {
-  const startTime = Date.now();
-  const requestId = `${req.method}-${req.path}-${Date.now()}`;
+  const requestId = `POST-/webhook/enerflo-${Date.now()}`;
+  console.log(`[${requestId}] Webhook received: ${req.body.event}`);
   
   try {
-    console.log(`[${requestId}] Webhook received:`, req.body.event);
-    
     // Validate webhook payload
-    const validation = validateWebhookPayload(req.body);
-    if (!validation.isValid) {
-      console.log(`[${requestId}] Validation failed:`, validation.errors);
-      return res.status(400).json({
-        success: false,
-        error: 'Webhook validation failed',
-        message: validation.errors.join(', '),
-        processingTime: `${Date.now() - startTime}ms`,
-        requestId
-      });
+    if (!req.body || !req.body.event || !req.body.payload) {
+      throw new Error('Invalid webhook payload - missing event or payload');
     }
     
-    // Process webhook
-    const result = await processWebhook(req.body);
+    if (req.body.event !== 'deal.projectSubmitted') {
+      throw new Error(`Unsupported event type: ${req.body.event}`);
+    }
     
-    console.log(`[${requestId}] Webhook processed successfully`);
-    res.json({
+    const { deal, customer, proposal } = req.body.payload;
+    
+    if (!deal || !deal.id) {
+      throw new Error('Webhook validation failed: Deal ID is missing');
+    }
+    
+    if (!customer || !customer.id) {
+      throw new Error('Webhook validation failed: Customer ID is missing');
+    }
+    
+    if (!proposal || !proposal.id) {
+      throw new Error('Webhook validation failed: Proposal ID is missing');
+    }
+    
+    console.log(`[${requestId}] Processing deal: ${deal.id} for customer: ${customer.id}`);
+    
+    // Enrich webhook data with Enerflo API (as recommended by Enerflo docs)
+    let enrichedPayload = req.body;
+    let enrichedFields = {};
+    
+    if (ENERFLO_API_KEY) {
+      try {
+        console.log(`[${requestId}] Enriching webhook data with Enerflo API...`);
+        enrichedPayload = await enerfloEnrichment.enrichWebhookData(req.body);
+        enrichedFields = enerfloEnrichment.extractEnrichedFields(enrichedPayload);
+        console.log(`[${requestId}] Enriched with ${Object.keys(enrichedFields).length} additional fields`);
+      } catch (error) {
+        console.warn(`[${requestId}] API enrichment failed, continuing with webhook data only:`, error.message);
+      }
+    } else {
+      console.log(`[${requestId}] No Enerflo API key provided, skipping enrichment`);
+    }
+    
+    // Map webhook data to QuickBase fields
+    const quickbaseData = mapWebhookToQuickBase(enrichedPayload);
+    
+    // Add enriched fields
+    Object.assign(quickbaseData, enrichedFields);
+    
+    console.log(`[${requestId}] Mapped ${Object.keys(quickbaseData).length} fields to QuickBase`);
+    
+    // Create/update QuickBase record
+    const quickbaseRecordId = await upsertQuickBaseRecord(deal.id, quickbaseData, requestId);
+    
+    const processingTime = Date.now() - req.timestamp;
+    console.log(`[${requestId}] Successfully processed in ${processingTime}ms`);
+    
+    res.status(200).json({
       success: true,
       message: 'Webhook processed successfully',
-      processingTime: `${Date.now() - startTime}ms`,
-      requestId,
-      quickbaseRecordId: result.quickbaseRecordId
+      dealId: deal.id,
+      customerId: customer.id,
+      proposalId: proposal.id,
+      quickbaseRecordId,
+      fieldsMapped: Object.keys(quickbaseData).length,
+      processingTime: `${processingTime}ms`,
+      requestId
     });
     
   } catch (error) {
+    const processingTime = Date.now() - req.timestamp;
     console.error(`[${requestId}] Webhook processing failed:`, error.message);
+    console.error(`[${requestId}] Error details:`, error);
+    
     res.status(500).json({
       success: false,
       error: 'Webhook processing failed',
       message: error.message,
-      processingTime: `${Date.now() - startTime}ms`,
+      processingTime: `${processingTime}ms`,
       requestId
     });
   }
 });
 
-// Validate webhook payload
-function validateWebhookPayload(payload) {
-  const errors = [];
-  
-  // Check basic structure
-  if (!payload.event) errors.push('Missing event');
-  if (!payload.payload) errors.push('Missing payload');
-  
-  if (payload.payload) {
-    const { deal, customer, proposal } = payload.payload;
-    
-    // Validate deal
-    if (!deal) errors.push('Missing deal');
-    else {
-      if (!deal.id) errors.push('Deal missing ID');
-    }
-    
-    // Validate customer
-    if (!customer) errors.push('Missing customer');
-    else {
-      if (!customer.id) errors.push('Customer missing ID');
-      if (!customer.firstName) errors.push('Customer missing firstName');
-      if (!customer.lastName) errors.push('Customer missing lastName');
-    }
-    
-    // Validate proposal
-    if (!proposal) errors.push('Missing proposal');
-    else {
-      if (!proposal.id) errors.push('Proposal missing ID');
-      if (!proposal.pricingOutputs) errors.push('Proposal missing pricingOutputs');
-      else {
-        if (!proposal.pricingOutputs.design) errors.push('Missing design');
-        else {
-          const systemSize = proposal.pricingOutputs.design.totalSystemSizeWatts || 
-                            proposal.pricingOutputs.design.systemSize;
-          if (!systemSize || systemSize <= 0) {
-            errors.push('Invalid or missing system size');
-          }
-        }
-      }
-    }
+// Upsert QuickBase record (create new or update existing)
+async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
+  if (!QB_REALM || !QB_TABLE_ID || !QB_USER_TOKEN) {
+    throw new Error('QuickBase API credentials are not configured. Please set QB_REALM, QB_TABLE_ID, and QB_USER_TOKEN environment variables.');
   }
   
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// Process webhook
-async function processWebhook(payload) {
-  const { deal, customer, proposal } = payload.payload;
-  
-  // Map data to QuickBase fields
-  const quickbaseData = mapToQuickBaseFields(deal, customer, proposal);
-  
-  // Create/update QuickBase record
-  const quickbaseRecordId = await upsertQuickBaseRecord(deal.id, quickbaseData);
-  
-  return { quickbaseRecordId };
-}
-
-// Map Enerflo data to QuickBase fields
-function mapToQuickBaseFields(deal, customer, proposal) {
-  const fields = {};
-  
-  // Basic deal info
-  fields[6] = deal.id; // Enerflo Deal ID
-  fields[7] = `${customer.firstName} ${customer.lastName}`; // Customer Full Name
-  fields[10] = customer.email || ''; // Customer Email
-  fields[11] = customer.phone || ''; // Customer Phone
-  fields[12] = 'submitted'; // Project Status
-  fields[13] = new Date().toISOString(); // Submission Date
-  
-  // System info
-  if (proposal?.pricingOutputs?.design) {
-    const design = proposal.pricingOutputs.design;
-    fields[14] = (design.totalSystemSizeWatts || design.systemSize || 0) / 1000; // System Size kW
-    fields[15] = calculateTotalPanels(design.arrays || []); // Total Panel Count
-    fields[18] = design.totalSystemSizeWatts || design.systemSize || 0; // System Size Watts
-  }
-  
-  // Customer info
-  fields[16] = customer.firstName || ''; // Customer First Name
-  fields[17] = customer.lastName || ''; // Customer Last Name
-  fields[64] = customer.id || ''; // Customer ID
-  
-  // Address info
-  if (proposal?.pricingOutputs?.deal?.projectAddress) {
-    const addr = proposal.pricingOutputs.deal.projectAddress;
-    fields[17] = addr.fullAddress || ''; // Address Full
-    fields[73] = addr.line1 || ''; // Address Line 1
-    fields[74] = addr.city || ''; // Address City
-    fields[75] = addr.state || ''; // Address State
-    fields[76] = addr.postalCode || ''; // Address Zip
-    fields[77] = addr.lat || 0; // Address Latitude
-    fields[78] = addr.lng || 0; // Address Longitude
-  }
-  
-  // Financial info
-  if (proposal?.pricingOutputs) {
-    const pricing = proposal.pricingOutputs;
-    fields[20] = pricing.grossCost || 0; // Gross Cost
-    fields[21] = pricing.baseCost || 0; // Base Cost
-    fields[22] = pricing.netCost || 0; // Net Cost After ITC
-    fields[23] = pricing.basePPW || 0; // Base PPW
-    fields[24] = pricing.grossPPW || 0; // Gross PPW
-    fields[25] = pricing.netPPW || 0; // Net PPW
-  }
-  
-  // Sales rep info
-  if (deal.salesRep?.id) {
-    fields[65] = deal.salesRep.id; // Sales Rep ID
-    fields[66] = deal.salesRep.name || ''; // Sales Team Name
-  }
-  
-  // Files count
-  fields[152] = deal.files?.filter(f => f.source === 'additional-documentation').length || 0; // Total Files Count
-  
-  // Proposal status
-  fields[153] = proposal ? true : false; // Has Created Proposal
-  
-  return fields;
-}
-
-// Helper function to calculate total panels
-function calculateTotalPanels(arrays) {
-  if (!Array.isArray(arrays)) return 0;
-  return arrays.reduce((total, array) => total + (array.moduleCount || 0), 0);
-}
-
-// Upsert QuickBase record
-async function upsertQuickBaseRecord(enerfloDealId, fields) {
   const url = `https://${QB_REALM}/db/${QB_TABLE_ID}`;
-  
-  const payload = {
-    to: QB_TABLE_ID,
-    data: [fields]
-  };
-  
   const headers = {
     'Authorization': `QB-USER-TOKEN ${QB_USER_TOKEN}`,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'User-Agent': 'Enerflo-QuickBase-Webhook/1.0.0'
   };
   
   try {
-    const response = await axios.post(url, payload, { headers });
+    // First, try to find an existing record by Enerflo Deal ID (Field ID 6)
+    console.log(`[${requestId}] Searching for existing record with Deal ID: ${enerfloDealId}`);
+    const queryUrl = `https://${QB_REALM}/db/${QB_TABLE_ID}?a=API_DoQuery&query={'6'.EX.'${enerfloDealId}'}&clist=3`;
+    const queryResponse = await axios.get(queryUrl, { 
+      headers: { 
+        'Authorization': `QB-USER-TOKEN ${QB_USER_TOKEN}`,
+        'User-Agent': 'Enerflo-QuickBase-Webhook/1.0.0'
+      } 
+    });
     
-    if (response.data.createdRecordIds && response.data.createdRecordIds.length > 0) {
-      console.log(`Created new QuickBase record: ${response.data.createdRecordIds[0]}`);
-      return response.data.createdRecordIds[0];
-    } else if (response.data.updatedRecordIds && response.data.updatedRecordIds.length > 0) {
-      console.log(`Updated existing QuickBase record: ${response.data.updatedRecordIds[0]}`);
-      return response.data.updatedRecordIds[0];
+    let existingRecordId = null;
+    if (queryResponse.data.records && queryResponse.data.records.length > 0) {
+      existingRecordId = queryResponse.data.records[0]['3'].value; // Field ID 3 is Record ID#
+      console.log(`[${requestId}] Found existing record: ${existingRecordId}`);
+    }
+    
+    if (existingRecordId) {
+      // Update existing record
+      console.log(`[${requestId}] Updating existing QuickBase record: ${existingRecordId}`);
+      const updatePayload = {
+        to: QB_TABLE_ID,
+        data: [{
+          3: existingRecordId, // Record ID#
+          ...fields
+        }]
+      };
+      
+      const updateResponse = await axios.post(url, updatePayload, { headers });
+      
+      if (updateResponse.data.updatedRecordIds && updateResponse.data.updatedRecordIds.length > 0) {
+        console.log(`[${requestId}] Successfully updated QuickBase record: ${updateResponse.data.updatedRecordIds[0]}`);
+        return updateResponse.data.updatedRecordIds[0];
+      } else {
+        throw new Error('Failed to update QuickBase record - no updated record IDs returned');
+      }
     } else {
-      throw new Error('No record created or updated');
+      // Create new record
+      console.log(`[${requestId}] Creating new QuickBase record`);
+      const createPayload = {
+        to: QB_TABLE_ID,
+        data: [fields]
+      };
+      
+      const createResponse = await axios.post(url, createPayload, { headers });
+      
+      if (createResponse.data.createdRecordIds && createResponse.data.createdRecordIds.length > 0) {
+        console.log(`[${requestId}] Successfully created QuickBase record: ${createResponse.data.createdRecordIds[0]}`);
+        return createResponse.data.createdRecordIds[0];
+      } else {
+        throw new Error('Failed to create QuickBase record - no created record IDs returned');
+      }
     }
   } catch (error) {
-    console.error('QuickBase API error:', error.response?.data || error.message);
-    throw error;
+    console.error(`[${requestId}] QuickBase API error:`, error.response?.data || error.message);
+    
+    if (error.response?.status === 400) {
+      throw new Error(`QuickBase validation error: ${JSON.stringify(error.response.data)}`);
+    } else if (error.response?.status === 401) {
+      throw new Error('QuickBase authentication failed - check your QB_USER_TOKEN');
+    } else if (error.response?.status === 403) {
+      throw new Error('QuickBase access denied - check your table permissions');
+    } else if (error.response?.status === 404) {
+      throw new Error('QuickBase table not found - check your QB_TABLE_ID');
+    } else {
+      throw new Error(`QuickBase API error: ${error.message}`);
+    }
   }
 }
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    message: error.message
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Not found',
+    message: `Route ${req.method} ${req.path} not found`
+  });
+});
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Enerflo-QuickBase Webhook Server v1.0.0 running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 Webhook endpoint: http://localhost:${PORT}/webhook/enerflo`);
+  console.log(`🔧 Environment: ${QB_REALM ? 'QuickBase configured' : 'QuickBase NOT configured'}`);
 });
+
+module.exports = app;
