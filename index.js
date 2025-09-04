@@ -291,4 +291,4 @@ app.listen(PORT, () => {
   console.log(`🔧 Environment: ${QB_REALM ? 'QuickBase configured' : 'QuickBase NOT configured'}`);
 });
 
-module.exports = app;
+module.exports = app;// Trigger deployment Thu Sep  4 01:13:11 MDT 2025
