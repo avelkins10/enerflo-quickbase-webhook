@@ -54,6 +54,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Debug endpoint to show environment variables
+app.get('/debug', (req, res) => {
+  res.status(200).json({
+    qbRealm: QB_REALM,
+    qbTableId: QB_TABLE_ID,
+    qbUserToken: QB_USER_TOKEN ? 'SET' : 'NOT SET',
+    enerfloApiKey: ENERFLO_API_KEY ? 'SET' : 'NOT SET'
+  });
+});
+
 // Main webhook endpoint
 app.post('/webhook/enerflo', async (req, res) => {
   const requestId = `POST-/webhook/enerflo-${Date.now()}`;
