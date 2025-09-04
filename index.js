@@ -307,8 +307,8 @@ function transformWebhookToQuickBase(webhook) {
     149: { value: findFileUrl(deal.files, 'tree-quote') }, // Tree Quote URL
     150: { value: getTreeRemovalData(deal).quoteUrl }, // Tree Quote URL
     151: { value: findFileUrl(deal.files, 'picture-of-site-of-tree-removal') }, // Tree Site Photo URL
-    152: { value: JSON.stringify(deal.files?.filter(f => f.source === 'additional-documentation').map(f => f.url) || []) }, // Additional Docs URLs
-    153: { value: deal.files?.length || 0 }, // Total Files Count
+    152: { value: deal.files?.filter(f => f.source === 'additional-documentation').length || 0 }, // Total Files Count
+    153: { value: proposal ? true : false }, // Has Created Proposal
     143: { value: deal.files?.find(f => f.source === 'signedContractFiles')?.name || '' }, // Contract Filename
     
     // Individual Adders (first 5)
