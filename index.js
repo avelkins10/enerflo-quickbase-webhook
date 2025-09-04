@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: '1.0.1-CallPilot-Fixed',
+    version: '1.0.2-CallPilot-Debug',
     health: {
       overall: 100,
       webhook: 100,
