@@ -437,8 +437,9 @@ function mapWebhookToQuickBase(webhookPayload) {
   // ===== SETTER & CLOSER =====
   // These would need to be fetched from Enerflo API as they're not in webhook
   // For now, we'll leave them empty and handle in enrichment phase
-  quickbaseRecord[218] = null; // Setter (lead owner)
-  quickbaseRecord[219] = null; // Closer (sales rep)
+  // Setter and Closer fields - will be populated later when we have the data
+  // quickbaseRecord[218] = null; // Setter (lead owner)
+  // quickbaseRecord[219] = null; // Closer (sales rep)
   
   // ===== CLEAN UP NULL/UNDEFINED VALUES AND WRAP FOR QUICKBASE =====
   const cleanedRecord = {};
