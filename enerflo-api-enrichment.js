@@ -178,17 +178,38 @@ class EnerfloAPIEnrichment {
         enrichedFields[70] = { value: fullInstall.installer.id }; // Installer Org ID
       }
       
-      // CallPilot/Welcome Call enrichment from fullInstall
-      if (fullInstall.welcomeCall) {
-        enrichedFields[170] = { value: fullInstall.welcomeCall.id }; // Welcome Call ID
-        enrichedFields[171] = { value: fullInstall.welcomeCall.date }; // Welcome Call Date
-        enrichedFields[172] = { value: fullInstall.welcomeCall.duration }; // Welcome Call Duration
-        enrichedFields[173] = { value: fullInstall.welcomeCall.recordingUrl }; // Welcome Call Recording URL
-        enrichedFields[174] = { value: JSON.stringify(fullInstall.welcomeCall.questions) }; // Welcome Call Questions JSON
-        enrichedFields[175] = { value: JSON.stringify(fullInstall.welcomeCall.answers) }; // Welcome Call Answers JSON
-        enrichedFields[176] = { value: fullInstall.welcomeCall.agent }; // Welcome Call Agent
-        enrichedFields[177] = { value: fullInstall.welcomeCall.outcome }; // Welcome Call Outcome
+      // Design enrichment - Aurora design image and metadata
+      if (fullInstall.image) {
+        enrichedFields[168] = { value: fullInstall.image }; // Design Image URL
       }
+      
+      // Design tool (Aurora)
+      if (fullInstall.design?.source?.tool) {
+        enrichedFields[169] = { value: fullInstall.design.source.tool }; // Design Tool
+      }
+      
+      // Design source ID (Aurora design ID)
+      if (fullInstall.design?.source?.id) {
+        enrichedFields[170] = { value: fullInstall.design.source.id }; // Design Source ID
+      }
+      
+      // Proposal files enrichment
+      if (fullInstall.files && Array.isArray(fullInstall.files)) {
+        // Map all files to JSON
+        const filesData = fullInstall.files.map(file => ({
+          id: file.id,
+          name: file.name,
+          type: file.type,
+          url: file.url,
+          survey_id: file.survey_id
+        }));
+        enrichedFields[61] = { value: JSON.stringify(filesData) }; // All Files JSON
+        
+        // Map total files count
+        enrichedFields[152] = { value: fullInstall.files.length }; // Total Files Count
+      }
+      
+      // Note: CallPilot/Welcome Call data is now handled by separate CallPilot API below
     }
     
     // CallPilot/Welcome Call enrichment from separate CallPilot API
@@ -209,11 +230,11 @@ class EnerfloAPIEnrichment {
         const answers = callPilot.enerflo_answers;
         
         // Welcome Call ID - use survey ID as the call ID
-        enrichedFields[170] = { value: surveyId }; // Welcome Call ID
+        enrichedFields[171] = { value: surveyId }; // Welcome Call ID
         
         // Welcome Call Date - use call_completed date from API
         if (callPilot.call_completed) {
-          enrichedFields[171] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
+          enrichedFields[172] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
         }
         
         // Welcome Call Duration - not available in API, leave empty
@@ -221,7 +242,7 @@ class EnerfloAPIEnrichment {
         
         // Welcome Call Recording URL
         if (callPilot.video_url) {
-          enrichedFields[173] = { value: callPilot.video_url }; // Welcome Call Recording URL
+          enrichedFields[174] = { value: callPilot.video_url }; // Welcome Call Recording URL
         }
         
         // Welcome Call Questions and Answers
@@ -229,46 +250,46 @@ class EnerfloAPIEnrichment {
           const questions = callPilot.question_answers.map(qa => qa.question).filter(q => q);
           const answers = callPilot.question_answers.map(qa => qa.selectedAnswer || qa.providedExternalAnswer).filter(a => a);
           
-          enrichedFields[174] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
-          enrichedFields[175] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
+          enrichedFields[175] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
+          enrichedFields[176] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
         }
         
         // Welcome Call Agent - get from enerflo_answers
         if (answers.agent_name) {
-          enrichedFields[176] = { value: answers.agent_name }; // Welcome Call Agent
+          enrichedFields[177] = { value: answers.agent_name }; // Welcome Call Agent
         }
         
         // Welcome Call Outcome
         if (callPilot.call_completed) {
-          enrichedFields[177] = { value: callPilot.call_completed }; // Welcome Call Outcome
+          enrichedFields[178] = { value: callPilot.call_completed }; // Welcome Call Outcome
         }
       } else {
         // Fallback: Try to map CallPilot data even if structure is different
         console.log('🔍 CallPilot data found but no enerflo_answers, trying fallback mapping...');
         
         // Welcome Call ID - use survey ID as the call ID
-        enrichedFields[170] = { value: surveyId }; // Welcome Call ID
+        enrichedFields[171] = { value: surveyId }; // Welcome Call ID
         
         // Welcome Call Date - use call_completed date if available
         if (callPilot.call_completed) {
-          enrichedFields[171] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
+          enrichedFields[172] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
         }
         
         // Try to map other available fields
         if (callPilot.video_url) {
-          enrichedFields[173] = { value: callPilot.video_url }; // Welcome Call Recording URL
+          enrichedFields[174] = { value: callPilot.video_url }; // Welcome Call Recording URL
         }
         
         if (callPilot.question_answers && Array.isArray(callPilot.question_answers)) {
           const questions = callPilot.question_answers.map(qa => qa.question).filter(q => q);
           const answers = callPilot.question_answers.map(qa => qa.selectedAnswer || qa.providedExternalAnswer).filter(a => a);
           
-          enrichedFields[174] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
-          enrichedFields[175] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
+          enrichedFields[175] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
+          enrichedFields[176] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
         }
         
         if (callPilot.call_completed) {
-          enrichedFields[177] = { value: callPilot.call_completed }; // Welcome Call Outcome
+          enrichedFields[178] = { value: callPilot.call_completed }; // Welcome Call Outcome
         }
       }
     }
