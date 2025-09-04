@@ -232,10 +232,29 @@ function mapWebhookToQuickBase(webhookPayload) {
     
     // Map up to 5 adders to dedicated fields
     allAdders.slice(0, 5).forEach((adder, index) => {
-      const fieldBase = 192 + (index * 5); // 192, 197, 202, 207, 212
+      let fieldBase, categoryField;
+      
+      // Handle the special case for Adder 3 Category (field 217)
+      if (index === 0) { // Adder 1
+        fieldBase = 192;
+        categoryField = 194;
+      } else if (index === 1) { // Adder 2
+        fieldBase = 197;
+        categoryField = 199;
+      } else if (index === 2) { // Adder 3
+        fieldBase = 202;
+        categoryField = 217; // Special case: Adder 3 Category is field 217
+      } else if (index === 3) { // Adder 4
+        fieldBase = 207;
+        categoryField = 208;
+      } else if (index === 4) { // Adder 5
+        fieldBase = 212;
+        categoryField = 213;
+      }
+      
       quickbaseRecord[fieldBase] = adder.displayName; // Adder Name
-      quickbaseRecord[fieldBase + 1] = ensureNumber(adder.amount); // Adder Cost
-      quickbaseRecord[fieldBase + 2] = adder.category || 'VALUE'; // Adder Category
+      quickbaseRecord[fieldBase + 2] = ensureNumber(adder.amount); // Adder Cost (skip 1 for category)
+      quickbaseRecord[categoryField] = adder.category || 'VALUE'; // Adder Category
       quickbaseRecord[fieldBase + 3] = ensureNumber(adder.ppw); // Adder PPW
       quickbaseRecord[fieldBase + 4] = ensureNumber(adder.quantity || 1); // Adder Quantity
     });
