@@ -10,7 +10,7 @@ const axios = require('axios');
 class EnerfloAPIEnrichment {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.baseURL = 'https://api.enerflo.io';
+    this.baseURL = 'https://enerflo.io';
   }
 
   /**
@@ -34,7 +34,7 @@ class EnerfloAPIEnrichment {
           console.log(`🔍 Trying API endpoint: ${endpoint}`);
           const response = await axios.get(`${this.baseURL}${endpoint}`, {
             headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
+              'api-key': this.apiKey,
               'Content-Type': 'application/json'
             }
           });
