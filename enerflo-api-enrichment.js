@@ -131,34 +131,34 @@ class EnerfloAPIEnrichment {
       // Customer enrichment
       if (fullInstall.customer) {
         if (fullInstall.customer.email) {
-          enrichedFields[10] = fullInstall.customer.email; // Customer Email
+          enrichedFields[10] = { value: fullInstall.customer.email }; // Customer Email
         }
         if (fullInstall.customer.phone) {
-          enrichedFields[11] = fullInstall.customer.phone; // Customer Phone
+          enrichedFields[11] = { value: fullInstall.customer.phone }; // Customer Phone
         }
       }
       
       // Sales rep enrichment (Setter/Closer)
       if (fullInstall.salesRep) {
-        enrichedFields[218] = fullInstall.salesRep.name || fullInstall.salesRep.id; // Setter
-        enrichedFields[219] = fullInstall.salesRep.name || fullInstall.salesRep.id; // Closer
+        enrichedFields[218] = { value: fullInstall.salesRep.name || fullInstall.salesRep.id }; // Setter
+        enrichedFields[219] = { value: fullInstall.salesRep.name || fullInstall.salesRep.id }; // Closer
       }
       
       // Installer enrichment
       if (fullInstall.installer) {
-        enrichedFields[70] = fullInstall.installer.id; // Installer Org ID
+        enrichedFields[70] = { value: fullInstall.installer.id }; // Installer Org ID
       }
       
       // CallPilot/Welcome Call enrichment
       if (fullInstall.welcomeCall) {
-        enrichedFields[170] = fullInstall.welcomeCall.id; // Welcome Call ID
-        enrichedFields[171] = fullInstall.welcomeCall.date; // Welcome Call Date
-        enrichedFields[172] = fullInstall.welcomeCall.duration; // Welcome Call Duration
-        enrichedFields[173] = fullInstall.welcomeCall.recordingUrl; // Welcome Call Recording URL
-        enrichedFields[174] = JSON.stringify(fullInstall.welcomeCall.questions); // Welcome Call Questions JSON
-        enrichedFields[175] = JSON.stringify(fullInstall.welcomeCall.answers); // Welcome Call Answers JSON
-        enrichedFields[176] = fullInstall.welcomeCall.agent; // Welcome Call Agent
-        enrichedFields[177] = fullInstall.welcomeCall.outcome; // Welcome Call Outcome
+        enrichedFields[170] = { value: fullInstall.welcomeCall.id }; // Welcome Call ID
+        enrichedFields[171] = { value: fullInstall.welcomeCall.date }; // Welcome Call Date
+        enrichedFields[172] = { value: fullInstall.welcomeCall.duration }; // Welcome Call Duration
+        enrichedFields[173] = { value: fullInstall.welcomeCall.recordingUrl }; // Welcome Call Recording URL
+        enrichedFields[174] = { value: JSON.stringify(fullInstall.welcomeCall.questions) }; // Welcome Call Questions JSON
+        enrichedFields[175] = { value: JSON.stringify(fullInstall.welcomeCall.answers) }; // Welcome Call Answers JSON
+        enrichedFields[176] = { value: fullInstall.welcomeCall.agent }; // Welcome Call Agent
+        enrichedFields[177] = { value: fullInstall.welcomeCall.outcome }; // Welcome Call Outcome
       }
       
       // Add any other enriched fields as needed
