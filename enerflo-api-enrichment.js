@@ -193,6 +193,9 @@ class EnerfloAPIEnrichment {
     if (enrichedPayload.enriched && enrichedPayload.callPilot) {
       const callPilot = enrichedPayload.callPilot;
       
+      // Debug: Log the CallPilot response structure
+      console.log('🔍 CallPilot response structure:', JSON.stringify(callPilot, null, 2));
+      
       // Map CallPilot data to QuickBase fields based on actual API response structure
       if (callPilot.enerflo_answers) {
         const answers = callPilot.enerflo_answers;
@@ -224,6 +227,32 @@ class EnerfloAPIEnrichment {
         // enrichedFields[176] = { value: null }; // Welcome Call Agent
         
         // Welcome Call Outcome
+        if (callPilot.call_completed) {
+          enrichedFields[177] = { value: callPilot.call_completed }; // Welcome Call Outcome
+        }
+      } else {
+        // Fallback: Try to map CallPilot data even if structure is different
+        console.log('🔍 CallPilot data found but no enerflo_answers, trying fallback mapping...');
+        
+        // Welcome Call ID - use deal ID as the call ID
+        enrichedFields[170] = { value: enrichedPayload.payload.deal.id }; // Welcome Call ID
+        
+        // Welcome Call Date - use current timestamp
+        enrichedFields[171] = { value: new Date().toISOString() }; // Welcome Call Date
+        
+        // Try to map other available fields
+        if (callPilot.video_url) {
+          enrichedFields[173] = { value: callPilot.video_url }; // Welcome Call Recording URL
+        }
+        
+        if (callPilot.question_answers && Array.isArray(callPilot.question_answers)) {
+          const questions = callPilot.question_answers.map(qa => qa.question).filter(q => q);
+          const answers = callPilot.question_answers.map(qa => qa.selectedAnswer || qa.providedExternalAnswer).filter(a => a);
+          
+          enrichedFields[174] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
+          enrichedFields[175] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
+        }
+        
         if (callPilot.call_completed) {
           enrichedFields[177] = { value: callPilot.call_completed }; // Welcome Call Outcome
         }
