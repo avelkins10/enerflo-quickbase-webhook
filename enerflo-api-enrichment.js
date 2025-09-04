@@ -196,6 +196,12 @@ class EnerfloAPIEnrichment {
       // Debug: Log the CallPilot response structure
       console.log('🔍 CallPilot response structure:', JSON.stringify(callPilot, null, 2));
       
+      // Check if CallPilot API returned an error message
+      if (typeof callPilot === 'string' && callPilot.includes('Access not Permitted')) {
+        console.log('⚠️ CallPilot API returned access denied, skipping CallPilot mapping');
+        return enrichedFields;
+      }
+      
       // Map CallPilot data to QuickBase fields based on actual API response structure
       if (callPilot.enerflo_answers) {
         const answers = callPilot.enerflo_answers;
