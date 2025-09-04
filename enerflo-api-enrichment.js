@@ -170,7 +170,8 @@ class EnerfloAPIEnrichment {
       // Sales rep enrichment (Setter/Closer) - check webhook payload first
       const salesRepId = enrichedPayload.payload?.deal?.salesRep?.id;
       if (salesRepId) {
-        // Use the sales rep ID from webhook payload
+        // For now, use the sales rep ID for both setter and closer
+        // In most cases, the same person is both setter and closer
         enrichedFields[218] = { value: salesRepId }; // Setter (Sales Rep ID)
         enrichedFields[219] = { value: salesRepId }; // Closer (Sales Rep ID)
       }
@@ -188,9 +189,7 @@ class EnerfloAPIEnrichment {
       
       // Design enrichment - Aurora design image and metadata
       if (fullInstall.image) {
-        // Note: Field 220 (Design Image URL) needs to be created in QuickBase
-        // For now, we'll skip this field until it's created
-        console.log('🎨 Design Image URL found but Field 220 not available in QuickBase:', fullInstall.image);
+        enrichedFields[220] = { value: fullInstall.image }; // Design Image URL
       }
       
       // Design ID (Aurora design ID) - check both API and webhook payload
