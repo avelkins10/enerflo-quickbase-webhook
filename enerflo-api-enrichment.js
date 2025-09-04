@@ -180,17 +180,24 @@ class EnerfloAPIEnrichment {
       
       // Design enrichment - Aurora design image and metadata
       if (fullInstall.image) {
-        enrichedFields[168] = { value: fullInstall.image }; // Design Image URL
+        enrichedFields[220] = { value: fullInstall.image }; // Design Image URL
       }
       
-      // Design tool (Aurora)
-      if (fullInstall.design?.source?.tool) {
-        enrichedFields[169] = { value: fullInstall.design.source.tool }; // Design Tool
+      // Design ID (Aurora design ID) - check both API and webhook payload
+      const designSourceId = fullInstall.design?.source?.id || enrichedPayload.payload?.proposal?.pricingOutputs?.design?.source?.id;
+      if (designSourceId) {
+        enrichedFields[168] = { value: designSourceId }; // Design ID
       }
       
-      // Design source ID (Aurora design ID)
-      if (fullInstall.design?.source?.id) {
-        enrichedFields[170] = { value: fullInstall.design.source.id }; // Design Source ID
+      // Design tool (Aurora) - check both API and webhook payload
+      const designTool = fullInstall.design?.source?.tool || enrichedPayload.payload?.proposal?.pricingOutputs?.design?.source?.tool;
+      if (designTool) {
+        enrichedFields[169] = { value: designTool }; // Design Tool
+      }
+      
+      // Design source ID (Aurora design ID - same as Design ID for now)
+      if (designSourceId) {
+        enrichedFields[170] = { value: designSourceId }; // Design Source ID
       }
       
       // Proposal files enrichment
