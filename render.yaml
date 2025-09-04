@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: enerflo-quickbase-webhook-v3
+    name: enerflo-quickbase-webhook
     env: node
     buildCommand: npm install
     startCommand: node index.js
