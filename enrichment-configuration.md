@@ -60,6 +60,10 @@ The enrichment function fetches and populates the following missing fields:
 - **Validation Timestamp** (Field ID 190)
 - **Validation Notes** (Field ID 191)
 
+### Sales Team Data
+- **Setter** (Field ID 218)
+- **Closer** (Field ID 219)
+
 ## API Endpoints
 
 ### Check Enrichment Status

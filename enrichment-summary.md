@@ -62,6 +62,10 @@ A comprehensive data enrichment system that automatically fetches missing custom
 - ✅ Validation Timestamp (Field ID 190)
 - ✅ Validation Notes (Field ID 191)
 
+### Sales Team Data (2 fields)
+- ✅ Setter (Field ID 218)
+- ✅ Closer (Field ID 219)
+
 ## 🚀 How It Works
 
 1. **Webhook Received** → Process main data → Save to QuickBase
