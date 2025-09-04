@@ -19,6 +19,36 @@ function ensureNumber(value) {
   return isNaN(num) ? null : num;
 }
 
+// Helper function to validate and format URLs
+function validateUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    new URL(url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to validate and format email addresses
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return null;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) ? email : null;
+}
+
+// Helper function to validate and format phone numbers
+function validatePhone(phone) {
+  if (!phone || typeof phone !== 'string') return null;
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+  // Must be 10 or 11 digits
+  if (digits.length === 10 || digits.length === 11) {
+    return phone; // Return original format
+  }
+  return null;
+}
+
 // Helper function to wrap field values for QuickBase API
 function wrapFieldValue(value) {
   if (value === null || value === undefined) return null;
@@ -38,8 +68,8 @@ function mapWebhookToQuickBase(webhookPayload) {
   // ===== CORE DEAL & CUSTOMER INFO =====
   quickbaseRecord[6] = deal?.id; // Enerflo Deal ID
   quickbaseRecord[7] = `${customer?.firstName || ''} ${customer?.lastName || ''}`.trim(); // Customer Full Name
-  quickbaseRecord[10] = customer?.email; // Customer Email
-  quickbaseRecord[11] = customer?.phone; // Customer Phone
+  quickbaseRecord[10] = validateEmail(customer?.email); // Customer Email
+  quickbaseRecord[11] = validatePhone(customer?.phone); // Customer Phone
   quickbaseRecord[12] = deal?.status || 'submitted'; // Project Status
   quickbaseRecord[13] = formatDateForQuickBase(new Date()); // Submission Date
   quickbaseRecord[16] = customer?.firstName; // Customer First Name
@@ -180,7 +210,7 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[52] = ensureNumber(additionalWork.trenchingCost); // Trenching Cost
     quickbaseRecord[108] = ensureNumber(additionalWork.treeTrimmingCost); // Tree Trimming Cost
     quickbaseRecord[109] = additionalWork.treeTrimmingContractor; // Tree Trimming Contractor
-    quickbaseRecord[110] = additionalWork.treeContractorPhone; // Tree Contractor Phone
+    quickbaseRecord[110] = validatePhone(additionalWork.treeContractorPhone); // Tree Contractor Phone
     quickbaseRecord[111] = ensureNumber(additionalWork.electricalCostEach); // Electrical Cost Each
     quickbaseRecord[112] = ensureNumber(additionalWork.metalRoofPPW); // Metal Roof PPW
     quickbaseRecord[113] = ensureNumber(additionalWork.trenchingLinearFeet); // Trenching Linear Feet
@@ -232,28 +262,28 @@ function mapWebhookToQuickBase(webhookPayload) {
     deal.files.forEach(file => {
       switch (file.source) {
         case 'signedContractFiles':
-          quickbaseRecord[22] = file.url; // Contract URL
+          quickbaseRecord[22] = validateUrl(file.url); // Contract URL
           quickbaseRecord[143] = file.name; // Contract Filename
-          quickbaseRecord[144] = file.url; // Installation Agreement URL
+          quickbaseRecord[144] = validateUrl(file.url); // Installation Agreement URL
           break;
         case 'full-utility-bill':
-          quickbaseRecord[145] = file.url; // Utility Bill URL
+          quickbaseRecord[145] = validateUrl(file.url); // Utility Bill URL
           quickbaseRecord[146] = file.name; // Utility Bill Filename
           break;
         case 'customers-photo-id':
-          quickbaseRecord[147] = file.url; // Customer ID Photo URL
+          quickbaseRecord[147] = validateUrl(file.url); // Customer ID Photo URL
           break;
         case 'proof-of-payment':
-          quickbaseRecord[148] = file.url; // Proof of Payment URL
+          quickbaseRecord[148] = validateUrl(file.url); // Proof of Payment URL
           break;
         case 'tree-quote':
-          quickbaseRecord[149] = file.url; // Tree Quote URL
+          quickbaseRecord[149] = validateUrl(file.url); // Tree Quote URL
           break;
         case 'picture-of-site-of-tree-removal':
-          quickbaseRecord[150] = file.url; // Tree Site Photo URL
+          quickbaseRecord[150] = validateUrl(file.url); // Tree Site Photo URL
           break;
         case 'additional-documentation':
-          quickbaseRecord[151] = file.url; // Additional Docs URLs
+          quickbaseRecord[151] = validateUrl(file.url); // Additional Docs URLs
           break;
       }
     });
@@ -328,7 +358,7 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[171] = welcomeCall.id; // Welcome Call ID
     quickbaseRecord[172] = formatDateForQuickBase(welcomeCall.date); // Welcome Call Date
     quickbaseRecord[173] = ensureNumber(welcomeCall.duration); // Welcome Call Duration
-    quickbaseRecord[174] = welcomeCall.recordingUrl; // Welcome Call Recording URL
+    quickbaseRecord[174] = validateUrl(welcomeCall.recordingUrl); // Welcome Call Recording URL
     quickbaseRecord[175] = JSON.stringify(welcomeCall.questions); // Welcome Call Questions JSON
     quickbaseRecord[176] = JSON.stringify(welcomeCall.answers); // Welcome Call Answers JSON
     quickbaseRecord[177] = welcomeCall.agent; // Welcome Call Agent
