@@ -202,15 +202,24 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
       
       const createResponse = await axios.post(url, createPayload, { headers });
       
+      console.log(`[${requestId}] QuickBase create response:`, JSON.stringify(createResponse.data, null, 2));
+      
       if (createResponse.data.createdRecordIds && createResponse.data.createdRecordIds.length > 0) {
         console.log(`[${requestId}] Successfully created QuickBase record: ${createResponse.data.createdRecordIds[0]}`);
         return createResponse.data.createdRecordIds[0];
       } else {
+        console.error(`[${requestId}] QuickBase create failed. Full response:`, JSON.stringify(createResponse.data, null, 2));
         throw new Error('Failed to create QuickBase record - no created record IDs returned');
       }
     }
   } catch (error) {
     console.error(`[${requestId}] QuickBase API error:`, error.response?.data || error.message);
+    console.error(`[${requestId}] Full error details:`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
     
     if (error.response?.status === 400) {
       throw new Error(`QuickBase validation error: ${JSON.stringify(error.response.data)}`);
