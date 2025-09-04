@@ -224,10 +224,11 @@ function mapWebhookToQuickBase(webhookPayload) {
   }
   
   // ===== ADDER MAPPING (Dynamic) =====
-  if (pricing?.calculatedValueAdders || pricing?.calculatedSystemAdders) {
+  const proposalPricing = proposal?.pricingOutputs;
+  if (proposalPricing?.calculatedValueAdders || proposalPricing?.calculatedSystemAdders) {
     const allAdders = [
-      ...(pricing.calculatedValueAdders || []),
-      ...(pricing.calculatedSystemAdders || [])
+      ...(proposalPricing.calculatedValueAdders || []),
+      ...(proposalPricing.calculatedSystemAdders || [])
     ];
     
     // Map up to 5 adders to dedicated fields
@@ -254,7 +255,9 @@ function mapWebhookToQuickBase(webhookPayload) {
       
       quickbaseRecord[fieldBase] = adder.displayName; // Adder Name
       quickbaseRecord[fieldBase + 2] = ensureNumber(adder.amount); // Adder Cost (skip 1 for category)
-      quickbaseRecord[categoryField] = adder.category || 'VALUE'; // Adder Category
+      // Determine category based on whether it's a value adder or system adder
+      const isValueAdder = proposalPricing.calculatedValueAdders?.includes(adder);
+      quickbaseRecord[categoryField] = isValueAdder ? 'VALUE' : 'SYSTEM'; // Adder Category
       quickbaseRecord[fieldBase + 3] = ensureNumber(adder.ppw); // Adder PPW
       quickbaseRecord[fieldBase + 4] = ensureNumber(adder.quantity || 1); // Adder Quantity
     });
