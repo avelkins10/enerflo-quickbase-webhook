@@ -2,8 +2,10 @@ const axios = require('axios');
 
 class EnerfloAPIClient {
     constructor() {
-        this.baseURL = process.env.ENERFLO_API_BASE_URL || 'https://api.enerflo.io';
+        // Enerflo 2.0 GraphQL API base URL
+        this.baseURL = process.env.ENERFLO_API_BASE_URL || 'https://api.enerflo.io/graphql';
         this.apiKey = process.env.ENERFLO_API_KEY;
+        this.orgId = process.env.ENERFLO_ORG_ID || 'kin'; // Your Enerflo subdomain
         this.timeout = 10000; // 10 seconds
         
         if (!this.apiKey) {
@@ -12,7 +14,7 @@ class EnerfloAPIClient {
     }
 
     /**
-     * Fetch customer data from Enerflo API
+     * Fetch customer data from Enerflo GraphQL API
      * @param {string} customerId - Enerflo customer ID
      * @returns {Object} Customer data
      */
@@ -21,27 +23,51 @@ class EnerfloAPIClient {
             throw new Error('Enerflo API key not configured');
         }
 
+        const query = `
+            query GetCustomer($customerId: ID!) {
+                customer(id: $customerId) {
+                    id
+                    firstName
+                    lastName
+                    email
+                    phone
+                    address {
+                        line1
+                        city
+                        state
+                        postalCode
+                    }
+                }
+            }
+        `;
+
         try {
-            const response = await axios.get(`${this.baseURL}/customers/${customerId}`, {
+            const response = await axios.post(this.baseURL, {
+                query: query,
+                variables: { customerId: customerId }
+            }, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
+                    'x-org': this.orgId,
                     'Content-Type': 'application/json'
                 },
                 timeout: this.timeout
             });
 
-            return response.data;
-        } catch (error) {
-            if (error.response?.status === 404) {
-                console.log(`Customer ${customerId} not found in Enerflo`);
+            if (response.data.errors) {
+                console.log(`GraphQL errors for customer ${customerId}:`, response.data.errors);
                 return null;
             }
-            throw new Error(`Failed to fetch customer data: ${error.message}`);
+
+            return response.data.data?.customer;
+        } catch (error) {
+            console.log(`Failed to fetch customer ${customerId}:`, error.message);
+            return null;
         }
     }
 
     /**
-     * Fetch deal data from Enerflo API
+     * Fetch deal data from Enerflo GraphQL API
      * @param {string} dealId - Enerflo deal ID
      * @returns {Object} Deal data
      */
@@ -50,22 +76,65 @@ class EnerfloAPIClient {
             throw new Error('Enerflo API key not configured');
         }
 
+        const query = `
+            query GetDeal($dealId: ID!) {
+                deal(id: $dealId) {
+                    id
+                    state
+                    salesRep {
+                        id
+                        name
+                    }
+                    setter {
+                        id
+                        name
+                    }
+                    closer {
+                        id
+                        name
+                    }
+                    notes {
+                        id
+                        text
+                        createdAt
+                        author
+                    }
+                    welcomeCall {
+                        id
+                        date
+                        duration
+                        recordingUrl
+                        questions
+                        answers
+                        agent
+                        outcome
+                    }
+                }
+            }
+        `;
+
         try {
-            const response = await axios.get(`${this.baseURL}/deals/${dealId}`, {
+            const response = await axios.post(this.baseURL, {
+                query: query,
+                variables: { dealId: dealId }
+            }, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
+                    'x-org': this.orgId,
                     'Content-Type': 'application/json'
                 },
                 timeout: this.timeout
             });
 
-            return response.data;
-        } catch (error) {
-            if (error.response?.status === 404) {
-                console.log(`Deal ${dealId} not found in Enerflo`);
+            if (response.data.errors) {
+                console.log(`GraphQL errors for deal ${dealId}:`, response.data.errors);
                 return null;
             }
-            throw new Error(`Failed to fetch deal data: ${error.message}`);
+
+            return response.data.data?.deal;
+        } catch (error) {
+            console.log(`Failed to fetch deal ${dealId}:`, error.message);
+            return null;
         }
     }
 

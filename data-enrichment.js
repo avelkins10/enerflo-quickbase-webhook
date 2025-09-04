@@ -39,13 +39,10 @@ class DataEnrichment {
                 throw new Error('Missing deal ID or customer ID in webhook data');
             }
 
-            // Fetch additional data from Enerflo API
-            const [customerData, dealData, notes, welcomeCallData, projectStatus] = await Promise.allSettled([
+            // Fetch additional data from Enerflo GraphQL API
+            const [customerData, dealData] = await Promise.allSettled([
                 this.enerfloClient.getCustomerData(customerId),
-                this.enerfloClient.getDealData(dealId),
-                this.enerfloClient.getCustomerNotes(customerId),
-                this.enerfloClient.getWelcomeCallData(dealId),
-                this.enerfloClient.getProjectStatus(dealId)
+                this.enerfloClient.getDealData(dealId)
             ]);
 
             // Process customer data
@@ -62,31 +59,12 @@ class DataEnrichment {
                 enrichmentResults.errors.push(...dealEnrichment.errors);
             }
 
-            // Process notes data
-            if (notes.status === 'fulfilled' && notes.value?.length > 0) {
-                const notesEnrichment = await this.enrichNotesData(quickbaseRecordId, notes.value);
-                enrichmentResults.enrichedFields.push(...notesEnrichment.enrichedFields);
-                enrichmentResults.errors.push(...notesEnrichment.errors);
-            }
-
-            // Process welcome call data
-            if (welcomeCallData.status === 'fulfilled' && welcomeCallData.value) {
-                const welcomeCallEnrichment = await this.enrichWelcomeCallData(quickbaseRecordId, welcomeCallData.value);
-                enrichmentResults.enrichedFields.push(...welcomeCallEnrichment.enrichedFields);
-                enrichmentResults.errors.push(...welcomeCallEnrichment.errors);
-            }
-
-            // Process project status
-            if (projectStatus.status === 'fulfilled' && projectStatus.value) {
-                const statusEnrichment = await this.enrichProjectStatus(quickbaseRecordId, projectStatus.value);
-                enrichmentResults.enrichedFields.push(...statusEnrichment.enrichedFields);
-                enrichmentResults.errors.push(...statusEnrichment.errors);
-            }
+            // Notes, welcome call, and project status are now included in deal data
 
             // Handle rejected promises
-            [customerData, dealData, notes, welcomeCallData, projectStatus].forEach((result, index) => {
+            [customerData, dealData].forEach((result, index) => {
                 if (result.status === 'rejected') {
-                    const apiNames = ['customer', 'deal', 'notes', 'welcomeCall', 'projectStatus'];
+                    const apiNames = ['customer', 'deal'];
                     enrichmentResults.errors.push({
                         field: apiNames[index],
                         error: result.reason.message
@@ -178,9 +156,75 @@ class DataEnrichment {
                 enrichment.enrichedFields.push('Updated At');
             }
 
-            // Note: Setter and Closer are now mapped directly from webhook data
-            // Setter (Field ID 218) = payload.initiatedBy (Lead Owner)
-            // Closer (Field ID 219) = payload.salesRep.id (Sales Rep)
+            // Setter and Closer from GraphQL API (if available)
+            if (dealData.setter && !updates[218]) {
+                updates[218] = { value: dealData.setter.name || dealData.setter.id };
+                enrichment.enrichedFields.push('Setter');
+            }
+            
+            if (dealData.closer && !updates[219]) {
+                updates[219] = { value: dealData.closer.name || dealData.closer.id };
+                enrichment.enrichedFields.push('Closer');
+            }
+
+            // Notes from GraphQL API
+            if (dealData.notes && dealData.notes.length > 0) {
+                updates[179] = { value: dealData.notes.length }; // Notes Count
+                enrichment.enrichedFields.push('Notes Count');
+                
+                const latestNote = dealData.notes[dealData.notes.length - 1];
+                if (latestNote.text) {
+                    updates[180] = { value: latestNote.text }; // Latest Note Text
+                    enrichment.enrichedFields.push('Latest Note Text');
+                }
+                if (latestNote.createdAt) {
+                    updates[181] = { value: new Date(latestNote.createdAt).toISOString() }; // Latest Note Date
+                    enrichment.enrichedFields.push('Latest Note Date');
+                }
+                if (latestNote.author) {
+                    updates[182] = { value: latestNote.author }; // Latest Note Author
+                    enrichment.enrichedFields.push('Latest Note Author');
+                }
+                updates[183] = { value: JSON.stringify(dealData.notes) }; // All Notes JSON
+                enrichment.enrichedFields.push('All Notes JSON');
+            }
+
+            // Welcome Call from GraphQL API
+            if (dealData.welcomeCall) {
+                const wc = dealData.welcomeCall;
+                if (wc.id) {
+                    updates[171] = { value: wc.id }; // Welcome Call ID
+                    enrichment.enrichedFields.push('Welcome Call ID');
+                }
+                if (wc.date) {
+                    updates[172] = { value: new Date(wc.date).toISOString() }; // Welcome Call Date
+                    enrichment.enrichedFields.push('Welcome Call Date');
+                }
+                if (wc.duration) {
+                    updates[173] = { value: wc.duration }; // Welcome Call Duration
+                    enrichment.enrichedFields.push('Welcome Call Duration');
+                }
+                if (wc.recordingUrl) {
+                    updates[174] = { value: wc.recordingUrl }; // Welcome Call Recording URL
+                    enrichment.enrichedFields.push('Welcome Call Recording URL');
+                }
+                if (wc.questions) {
+                    updates[175] = { value: JSON.stringify(wc.questions) }; // Welcome Call Questions JSON
+                    enrichment.enrichedFields.push('Welcome Call Questions JSON');
+                }
+                if (wc.answers) {
+                    updates[176] = { value: JSON.stringify(wc.answers) }; // Welcome Call Answers JSON
+                    enrichment.enrichedFields.push('Welcome Call Answers JSON');
+                }
+                if (wc.agent) {
+                    updates[177] = { value: wc.agent }; // Welcome Call Agent
+                    enrichment.enrichedFields.push('Welcome Call Agent');
+                }
+                if (wc.outcome) {
+                    updates[178] = { value: wc.outcome }; // Welcome Call Outcome
+                    enrichment.enrichedFields.push('Welcome Call Outcome');
+                }
+            }
 
             // Update QuickBase record if we have data
             if (Object.keys(updates).length > 0) {
