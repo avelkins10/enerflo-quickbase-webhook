@@ -2,8 +2,9 @@ const axios = require('axios');
 
 class EnerfloAPIClient {
     constructor() {
-        // Enerflo 2.0 GraphQL API base URL
-        this.baseURL = process.env.ENERFLO_API_BASE_URL || 'https://api.enerflo.io/graphql';
+        // Hybrid API approach: v1 REST + v2 GraphQL
+        this.v1BaseURL = process.env.ENERFLO_V1_API_URL || 'https://api.enerflo.io/v1';
+        this.v2BaseURL = process.env.ENERFLO_V2_API_URL || 'https://api.enerflo.io/graphql';
         this.apiKey = process.env.ENERFLO_API_KEY;
         this.orgId = process.env.ENERFLO_ORG_ID || 'kin'; // Your Enerflo subdomain
         this.timeout = 10000; // 10 seconds
@@ -14,7 +15,7 @@ class EnerfloAPIClient {
     }
 
     /**
-     * Fetch customer data from Enerflo GraphQL API
+     * Fetch customer data from Enerflo v1 REST API
      * @param {string} customerId - Enerflo customer ID
      * @returns {Object} Customer data
      */
@@ -23,51 +24,28 @@ class EnerfloAPIClient {
             throw new Error('Enerflo API key not configured');
         }
 
-        const query = `
-            query GetCustomer($customerId: ID!) {
-                customer(id: $customerId) {
-                    id
-                    firstName
-                    lastName
-                    email
-                    phone
-                    address {
-                        line1
-                        city
-                        state
-                        postalCode
-                    }
-                }
-            }
-        `;
-
         try {
-            const response = await axios.post(this.baseURL, {
-                query: query,
-                variables: { customerId: customerId }
-            }, {
+            const response = await axios.get(`${this.v1BaseURL}/customers/${customerId}`, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
-                    'x-org': this.orgId,
                     'Content-Type': 'application/json'
                 },
                 timeout: this.timeout
             });
 
-            if (response.data.errors) {
-                console.log(`GraphQL errors for customer ${customerId}:`, response.data.errors);
+            return response.data;
+        } catch (error) {
+            if (error.response?.status === 404) {
+                console.log(`Customer ${customerId} not found in Enerflo v1`);
                 return null;
             }
-
-            return response.data.data?.customer;
-        } catch (error) {
-            console.log(`Failed to fetch customer ${customerId}:`, error.message);
+            console.log(`Failed to fetch customer ${customerId} from v1:`, error.message);
             return null;
         }
     }
 
     /**
-     * Fetch deal data from Enerflo GraphQL API
+     * Fetch deal data from Enerflo v2 GraphQL API
      * @param {string} dealId - Enerflo deal ID
      * @returns {Object} Deal data
      */
@@ -76,45 +54,18 @@ class EnerfloAPIClient {
             throw new Error('Enerflo API key not configured');
         }
 
+        // Simple query to test GraphQL connectivity
         const query = `
             query GetDeal($dealId: ID!) {
                 deal(id: $dealId) {
                     id
                     state
-                    salesRep {
-                        id
-                        name
-                    }
-                    setter {
-                        id
-                        name
-                    }
-                    closer {
-                        id
-                        name
-                    }
-                    notes {
-                        id
-                        text
-                        createdAt
-                        author
-                    }
-                    welcomeCall {
-                        id
-                        date
-                        duration
-                        recordingUrl
-                        questions
-                        answers
-                        agent
-                        outcome
-                    }
                 }
             }
         `;
 
         try {
-            const response = await axios.post(this.baseURL, {
+            const response = await axios.post(this.v2BaseURL, {
                 query: query,
                 variables: { dealId: dealId }
             }, {
@@ -133,7 +84,7 @@ class EnerfloAPIClient {
 
             return response.data.data?.deal;
         } catch (error) {
-            console.log(`Failed to fetch deal ${dealId}:`, error.message);
+            console.log(`Failed to fetch deal ${dealId} from v2:`, error.message);
             return null;
         }
     }

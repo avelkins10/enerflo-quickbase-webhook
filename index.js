@@ -30,6 +30,47 @@ const calculateTotalPanels = (arrays) => {
   return arrays ? arrays.reduce((total, array) => total + (array.moduleCount || 0), 0) : 0;
 };
 
+const getFirstArrayModule = (proposal) => {
+  return proposal?.pricingOutputs?.design?.arrays?.[0]?.module || proposal?.design?.arrays?.[0]?.module;
+};
+
+const getContractUrl = (deal) => {
+  const contractFile = deal?.files?.find(f => f.source === 'signedContractFiles');
+  return contractFile?.url || '';
+};
+
+const getTreeRemovalData = (deal) => {
+  const additionalWork = deal?.state?.['additional-work-substage'];
+  return {
+    contractor: additionalWork?.['tree-removal-contractor'] || '',
+    cost: additionalWork?.['tree-removal-cost'] || 0,
+    phone: additionalWork?.['tree-removal-contractor-phone-number'] || '',
+    quoteUrl: deal?.files?.find(f => f.source === 'tree-quote')?.url || ''
+  };
+};
+
+const getUtilityData = (proposal) => {
+  const consumption = proposal?.pricingOutputs?.design?.consumptionProfile;
+  return {
+    companyName: consumption?.utility?.name || '',
+    annualConsumption: consumption?.annualConsumption || 0,
+    averageMonthlyBill: consumption?.averageMonthlyBill || 0,
+    utilityRate: consumption?.rate || 0
+  };
+};
+
+const getAddressData = (proposal) => {
+  const address = proposal?.pricingOutputs?.deal?.projectAddress;
+  return {
+    line1: address?.line1 || '',
+    city: address?.city || '',
+    state: address?.state || '',
+    zip: address?.postalCode || '',
+    lat: address?.lat || 0,
+    lng: address?.lng || 0
+  };
+};
+
 const findAdderAmount = (adders, name) => {
   if (!adders) return 0;
   const adder = adders.find(a => a.displayName === name);
@@ -95,8 +136,8 @@ function transformWebhookToQuickBase(webhook) {
     68: { value: payload.initiatedBy || '' }, // Initiated By User ID
     69: { value: payload.targetOrg || '' }, // Target Organization ID
     71: { value: webhook.event || '' }, // Event Type
-    218: { value: payload.initiatedBy || '' }, // Setter (Lead Owner)
-    219: { value: payload.salesRep?.id || '' }, // Closer (Sales Rep)
+    218: { value: payload.salesRep?.id || '' }, // Setter (Lead Owner) - Austin Elkins
+    219: { value: payload.salesRep?.id || '' }, // Closer (Sales Rep) - Austin Elkins
     
     // Proposal Info
     72: { value: proposal?.id || '' }, // Proposal ID
@@ -109,6 +150,7 @@ function transformWebhookToQuickBase(webhook) {
     36: { value: proposal?.pricingOutputs?.grossPPW || 0 }, // Gross PPW
     93: { value: proposal?.pricingOutputs?.netPPW || 0 }, // Net PPW
     37: { value: proposal?.pricingOutputs?.federalRebateTotal || 0 }, // Federal ITC Amount
+    94: { value: 30 }, // Federal ITC Percent (30% standard)
     38: { value: (proposal?.pricingOutputs?.downPayment || 0) * (proposal?.pricingOutputs?.grossCost || 0) }, // Down Payment Amount
     99: { value: proposal?.pricingOutputs?.downPayment || 0 }, // Down Payment Percent
     40: { value: proposal?.pricingOutputs?.financeCost || 0 }, // Finance Cost
@@ -127,16 +169,16 @@ function transformWebhookToQuickBase(webhook) {
     39: { value: (proposal?.pricingOutputs?.valueAddersTotal || 0) + (proposal?.pricingOutputs?.systemAddersTotal || 0) }, // Total Adders Amount
     
     // System Design
-    15: { value: calculateTotalPanels(proposal?.design?.arrays) }, // Total Panel Count
-    20: { value: proposal?.design?.arrays?.[0]?.module?.model || '' }, // Panel Model
-    23: { value: proposal?.design?.arrays?.[0]?.module?.manufacturer || '' }, // Panel Manufacturer
-    24: { value: proposal?.design?.arrays?.[0]?.module?.capacity || 0 }, // Panel Watts Each
-    25: { value: proposal?.design?.arrays?.[0]?.module?.name || '' }, // Panel Name
-    79: { value: proposal?.design?.arrays?.[0]?.module?.efficiency || 0 }, // Panel Efficiency
-    80: { value: proposal?.design?.arrays?.[0]?.module?.degradation || 0 }, // Panel Degradation
-    81: { value: proposal?.design?.arrays?.[0]?.module?.width || 0 }, // Panel Width mm
-    82: { value: proposal?.design?.arrays?.[0]?.module?.length || 0 }, // Panel Length mm
-    29: { value: proposal?.design?.arrays?.length || 0 }, // Array Count
+    15: { value: calculateTotalPanels(proposal?.pricingOutputs?.design?.arrays) }, // Total Panel Count
+    20: { value: getFirstArrayModule(proposal)?.model || '' }, // Panel Model
+    23: { value: getFirstArrayModule(proposal)?.manufacturer || '' }, // Panel Manufacturer
+    24: { value: getFirstArrayModule(proposal)?.capacity || 0 }, // Panel Watts Each
+    25: { value: getFirstArrayModule(proposal)?.name || '' }, // Panel Name
+    79: { value: getFirstArrayModule(proposal)?.efficiency || 0 }, // Panel Efficiency
+    80: { value: getFirstArrayModule(proposal)?.degradation || 0 }, // Panel Degradation
+    81: { value: getFirstArrayModule(proposal)?.width || 0 }, // Panel Width mm
+    82: { value: getFirstArrayModule(proposal)?.length || 0 }, // Panel Length mm
+    29: { value: proposal?.pricingOutputs?.design?.arrays?.length || 0 }, // Array Count
     26: { value: proposal?.design?.inverters?.[0]?.manufacturer || '' }, // Inverter Manufacturer
     27: { value: proposal?.design?.inverters?.[0]?.model || '' }, // Inverter Model
     28: { value: proposal?.design?.inverters?.[0]?.count || 0 }, // Inverter Count
@@ -148,7 +190,7 @@ function transformWebhookToQuickBase(webhook) {
     31: { value: proposal?.design?.mountingType || '' }, // Mounting Type
     32: { value: proposal?.design?.weightedTsrf || 0 }, // Weighted TSRF
     53: { value: proposal?.design?.firstYearProduction || 0 }, // Annual Production kWh
-    54: { value: proposal?.design?.offset || 0 }, // System Offset Percent
+    54: { value: Math.round((proposal?.pricingOutputs?.design?.offset || 0) * 100) }, // System Offset Percent
     88: { value: proposal?.design?.batteryCount || 0 }, // Battery Count
     89: { value: proposal?.design?.batteryPurpose || '' }, // Battery Purpose
     90: { value: proposal?.pricingOutputs?.batteryTotal || 0 }, // Battery Total Cost
@@ -156,16 +198,16 @@ function transformWebhookToQuickBase(webhook) {
     83: { value: (proposal?.pricingOutputs?.systemSizeWatts || 0) / 1000 }, // System Size kW2
     
     // Address Info
-    73: { value: proposal?.pricingOutputs?.deal?.projectAddress?.line1 || '' }, // Address Line 1
-    74: { value: proposal?.pricingOutputs?.deal?.projectAddress?.city || '' }, // Address City
-    75: { value: proposal?.pricingOutputs?.deal?.projectAddress?.state || '' }, // Address State
-    76: { value: proposal?.pricingOutputs?.deal?.projectAddress?.postalCode || '' }, // Address Zip
+    73: { value: getAddressData(proposal).line1 }, // Address Line 1
+    74: { value: getAddressData(proposal).city }, // Address City
+    75: { value: getAddressData(proposal).state }, // Address State
+    76: { value: getAddressData(proposal).zip }, // Address Zip
     18: { value: proposal?.pricingOutputs?.deal?.projectAddress?.fullAddress || '' }, // Address Full
-    77: { value: proposal?.pricingOutputs?.deal?.projectAddress?.lat || 0 }, // Address Latitude
-    78: { value: proposal?.pricingOutputs?.deal?.projectAddress?.lng || 0 }, // Address Longitude
+    77: { value: getAddressData(proposal).lat }, // Address Latitude
+    78: { value: getAddressData(proposal).lng }, // Address Longitude
     
     // Utility Info
-    55: { value: proposal?.design?.utility?.name || '' }, // Utility Company Name
+    55: { value: getUtilityData(proposal).companyName }, // Utility Company Name
     125: { value: proposal?.design?.utility?.id || '' }, // Utility Company ID
     126: { value: proposal?.design?.utility?.genabilityId || 0 }, // Genability Utility ID
     127: { value: proposal?.design?.consumptionProfile?.tariff?.tariffName || '' }, // Rate Schedule Name
@@ -175,8 +217,8 @@ function transformWebhookToQuickBase(webhook) {
     131: { value: proposal?.design?.consumptionProfile?.postSolarRate || 0 }, // Post Solar Rate
     132: { value: proposal?.design?.consumptionProfile?.annualBill || 0 }, // Annual Bill Amount
     133: { value: proposal?.design?.consumptionProfile?.averageMonthlyConsumption || 0 }, // Average Monthly Usage
-    57: { value: proposal?.design?.consumptionProfile?.averageMonthlyBill || 0 }, // Average Monthly Bill
-    56: { value: proposal?.design?.consumptionProfile?.annualConsumption || 0 }, // Annual Consumption kWh
+    57: { value: getUtilityData(proposal).averageMonthlyBill }, // Average Monthly Bill
+    56: { value: getUtilityData(proposal).annualConsumption }, // Annual Consumption kWh
     134: { value: proposal?.design?.consumptionProfile?.buildingArea || 0 }, // Building Area sqft
     
     // Deal Status Flags
@@ -185,6 +227,7 @@ function transformWebhookToQuickBase(webhook) {
     44: { value: deal.state?.financingStatus === 'approved' }, // Financing Approved
     45: { value: deal.state?.['site-survey']?.['schedule-site-survey'] || false }, // Site Survey Scheduled
     46: { value: deal.state?.['additional-work-substage']?.['is-there-additional-work'] || false }, // Additional Work Needed
+    124: { value: JSON.stringify(deal.state?.['additional-work-substage']?.['additional-work'] || []) }, // Additional Work Types
     153: { value: deal.state?.hasCreatedProposal || false }, // Has Created Proposal
     154: { value: deal.state?.hasApprovedContract || false }, // Has Approved Contract
     155: { value: deal.state?.hasSubmittedProject || false }, // Has Submitted Project
@@ -202,7 +245,7 @@ function transformWebhookToQuickBase(webhook) {
     
     // Additional Work
     48: { value: deal.state?.['additional-work-substage']?.['tree-removal-contractor'] || '' }, // Tree Removal Contractor
-    47: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.valueAdders, 'Tree Removal') }, // Tree Removal Cost
+    47: { value: getTreeRemovalData(deal).cost }, // Tree Removal Cost
     109: { value: deal.state?.['additional-work-substage']?.['tree-trimming-contractor'] || '' }, // Tree Trimming Contractor
     108: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.valueAdders, 'Tree Trimming') }, // Tree Trimming Cost
     110: { value: deal.state?.['additional-work-substage']?.['tree-removal-contractor-phone-number'] || '' }, // Tree Contractor Phone
@@ -242,7 +285,7 @@ function transformWebhookToQuickBase(webhook) {
     70: { value: proposal?.pricingOutputs?.deal?.installer?.id || '' }, // Installer Org ID
     
     // JSON Fields for Complex Data
-    58: { value: JSON.stringify(proposal?.design?.arrays || []) }, // Arrays JSON
+    58: { value: JSON.stringify(proposal?.pricingOutputs?.design?.arrays || []) }, // Arrays JSON
     59: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.valueAdders || []) }, // Value Adder JSON
     60: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.systemAdders || []) }, // System Adders JSON
     61: { value: JSON.stringify(deal.files || []) }, // All Files JSON
@@ -255,16 +298,17 @@ function transformWebhookToQuickBase(webhook) {
     122: { value: JSON.stringify(proposal?.pricingOutputs || {}) }, // Pricing Model JSON
     
     // File URLs
-    22: { value: findFileUrl(deal.files, 'signedContractFiles') }, // Contract Url
+    22: { value: getContractUrl(deal) }, // Contract Url
     144: { value: findFileUrl(deal.files, 'signedContractFiles') }, // Installation Agreement URL
     145: { value: findFileUrl(deal.files, 'full-utility-bill') }, // Utility Bill URL
     146: { value: deal.files?.find(f => f.source === 'full-utility-bill')?.name || '' }, // Utility Bill Filename
     147: { value: findFileUrl(deal.files, 'customers-photo-id') }, // Customer ID Photo URL
     148: { value: findFileUrl(deal.files, 'proof-of-payment') }, // Proof of Payment URL
     149: { value: findFileUrl(deal.files, 'tree-quote') }, // Tree Quote URL
-    150: { value: findFileUrl(deal.files, 'picture-of-site-of-tree-removal') }, // Tree Site Photo URL
-    151: { value: JSON.stringify(deal.files?.filter(f => f.source === 'additional-documentation').map(f => f.url) || []) }, // Additional Docs URLs
-    152: { value: deal.files?.length || 0 }, // Total Files Count
+    150: { value: getTreeRemovalData(deal).quoteUrl }, // Tree Quote URL
+    151: { value: findFileUrl(deal.files, 'picture-of-site-of-tree-removal') }, // Tree Site Photo URL
+    152: { value: JSON.stringify(deal.files?.filter(f => f.source === 'additional-documentation').map(f => f.url) || []) }, // Additional Docs URLs
+    153: { value: deal.files?.length || 0 }, // Total Files Count
     143: { value: deal.files?.find(f => f.source === 'signedContractFiles')?.name || '' }, // Contract Filename
     
     // Individual Adders (first 5)
