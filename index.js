@@ -1,593 +1,359 @@
 const express = require('express');
 const cors = require('cors');
-const DataEnrichment = require('./data-enrichment');
-const app = express();
+const DataMapper = require('./data-mapper');
+const FieldValidator = require('./field-validator');
+const DataTypeConverter = require('./data-type-converter');
+const WebhookValidator = require('./webhook-validator');
+const ErrorRecovery = require('./error-recovery');
+const PerformanceMonitor = require('./performance-monitor');
+const EnerfloAPIClientV2 = require('./enerflo-api-client-v2');
+const DataEnrichmentV2 = require('./data-enrichment-v2');
 
-// Initialize Data Enrichment
-const dataEnrichment = new DataEnrichment();
-
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-
-// QuickBase Configuration
-const QB_CONFIG = {
-  realm: 'kin.quickbase.com',
-  tableId: 'bveiu6xy5',
-  userToken: 'b6um6p_p3bs_0_bmrupwzbc82cdnb44a7pirtbxif',
-  baseUrl: 'https://api.quickbase.com/v1'
-};
-
-// QuickBase Headers
-const getQBHeaders = () => ({
-  'QB-Realm-Hostname': QB_CONFIG.realm,
-  'Authorization': `QB-USER-TOKEN ${QB_CONFIG.userToken}`,
-  'Content-Type': 'application/json'
-});
-
-// Helper Functions
-const calculateTotalPanels = (arrays) => {
-  return arrays ? arrays.reduce((total, array) => total + (array.moduleCount || 0), 0) : 0;
-};
-
-const getFirstArrayModule = (proposal) => {
-  return proposal?.pricingOutputs?.design?.arrays?.[0]?.module || proposal?.design?.arrays?.[0]?.module;
-};
-
-const getContractUrl = (deal) => {
-  const contractFile = deal?.files?.find(f => f.source === 'signedContractFiles');
-  return contractFile?.url || '';
-};
-
-const getTreeRemovalData = (deal) => {
-  const additionalWork = deal?.state?.['additional-work-substage'];
-  return {
-    contractor: additionalWork?.['tree-removal-contractor'] || '',
-    cost: additionalWork?.['tree-removal-cost'] || 0,
-    phone: additionalWork?.['tree-removal-contractor-phone-number'] || '',
-    quoteUrl: deal?.files?.find(f => f.source === 'tree-quote')?.url || ''
-  };
-};
-
-const getUtilityData = (proposal) => {
-  const consumption = proposal?.pricingOutputs?.design?.consumptionProfile;
-  return {
-    companyName: consumption?.utility?.name || '',
-    annualConsumption: consumption?.annualConsumption || 0,
-    averageMonthlyBill: consumption?.averageMonthlyBill || 0,
-    utilityRate: consumption?.rate || 0
-  };
-};
-
-const getAddressData = (proposal) => {
-  const address = proposal?.pricingOutputs?.deal?.projectAddress;
-  return {
-    line1: address?.line1 || '',
-    city: address?.city || '',
-    state: address?.state || '',
-    zip: address?.postalCode || '',
-    lat: address?.lat || 0,
-    lng: address?.lng || 0
-  };
-};
-
-const findAdderAmount = (adders, name) => {
-  if (!adders) return 0;
-  const adder = adders.find(a => a.displayName === name);
-  return adder ? (adder.amount || 0) : 0;
-};
-
-const findFileUrl = (files, source) => {
-  if (!files) return '';
-  const file = files.find(f => f.source === source);
-  return file ? file.url : '';
-};
-
-// Find existing record by Enerflo Deal ID
-async function findExistingRecord(dealId) {
-  const url = `${QB_CONFIG.baseUrl}/records/query`;
-  
-  const payload = {
-    from: QB_CONFIG.tableId,
-    where: `{6.EX.'${dealId}'}`,
-    select: [3]
-  };
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getQBHeaders(),
-      body: JSON.stringify(payload)
-    });
+class EnerfloWebhookServerV2 {
+  constructor() {
+    this.app = express();
+    this.dataMapper = new DataMapper();
+    this.fieldValidator = new FieldValidator();
+    this.dataTypeConverter = new DataTypeConverter();
+    this.webhookValidator = new WebhookValidator();
+    this.errorRecovery = new ErrorRecovery();
+    this.performanceMonitor = new PerformanceMonitor();
+    this.apiClient = new EnerfloAPIClientV2();
+    this.enrichment = new DataEnrichmentV2();
     
-    if (!response.ok) {
-      throw new Error(`QuickBase query failed: ${response.status} ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    return result.data.length > 0 ? result.data[0][3].value : null;
-  } catch (error) {
-    console.error('Error querying QuickBase:', error);
-    return null;
+    this.setupMiddleware();
+    this.setupRoutes();
+    this.setupErrorHandling();
   }
-}
 
-// Transform webhook data to QuickBase format with ALL fields
-function transformWebhookToQuickBase(webhook) {
-  const payload = webhook.payload;
-  const deal = payload.deal;
-  const customer = payload.customer;
-  const proposal = payload.proposal;
-  
-  console.log('🔄 Transforming webhook data...');
-  console.log('   Deal ID:', deal.id);
-  console.log('   Customer:', customer.firstName, customer.lastName);
-  console.log('   System Size:', proposal?.pricingOutputs?.systemSizeWatts, 'W');
-  
-  // Complete field mapping - ALL 150+ fields
-  const recordData = {
-    // Basic Deal Info
-    6: { value: deal.id }, // Enerflo Deal ID
-    64: { value: customer.id || '' }, // Customer ID
-    16: { value: customer.firstName || '' }, // Customer First Name
-    17: { value: customer.lastName || '' }, // Customer Last Name
-    7: { value: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() }, // Customer Full Name
-    65: { value: payload.salesRep?.id || '' }, // Sales Rep ID
-    68: { value: payload.initiatedBy || '' }, // Initiated By User ID
-    69: { value: payload.targetOrg || '' }, // Target Organization ID
-    71: { value: webhook.event || '' }, // Event Type
-    218: { value: deal.salesRep?.id || payload.initiatedBy || '' }, // Setter (Lead Owner)
-    219: { value: deal.salesRep?.id || payload.initiatedBy || '' }, // Closer (Sales Rep)
+  setupMiddleware() {
+    this.app.use(cors());
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true }));
     
-    // Proposal Info
-    72: { value: proposal?.id || '' }, // Proposal ID
-    19: { value: proposal?.pricingOutputs?.systemSizeWatts || 0 }, // System Size Watts
-    14: { value: (proposal?.pricingOutputs?.systemSizeWatts || 0) / 1000 }, // System Size kW
-    21: { value: proposal?.pricingOutputs?.grossCost || 0 }, // Gross Cost
-    33: { value: proposal?.pricingOutputs?.baseCost || 0 }, // Base Cost
-    34: { value: proposal?.pricingOutputs?.netCost || 0 }, // Net Cost After ITC
-    35: { value: proposal?.pricingOutputs?.basePPW || 0 }, // Base PPW
-    36: { value: proposal?.pricingOutputs?.grossPPW || 0 }, // Gross PPW
-    93: { value: proposal?.pricingOutputs?.netPPW || 0 }, // Net PPW
-    37: { value: proposal?.pricingOutputs?.federalRebateTotal || 0 }, // Federal ITC Amount
-    94: { value: 30 }, // Federal ITC Percent (30% standard)
-    38: { value: (proposal?.pricingOutputs?.downPayment || 0) * (proposal?.pricingOutputs?.grossCost || 0) }, // Down Payment Amount
-    99: { value: proposal?.pricingOutputs?.downPayment || 0 }, // Down Payment Percent
-    40: { value: proposal?.pricingOutputs?.financeCost || 0 }, // Finance Cost
-    92: { value: proposal?.pricingOutputs?.commissionBase || 0 }, // Commission Base
-    95: { value: proposal?.pricingOutputs?.rebatesTotal || 0 }, // Rebates Total
-    97: { value: proposal?.pricingOutputs?.dealerFee || 0 }, // Dealer Fee
-    98: { value: proposal?.pricingOutputs?.dealerFeePercent || 0 }, // Dealer Fee Percent
-    100: { value: proposal?.pricingOutputs?.equipmentTotal || 0 }, // Equipment Total
-    101: { value: proposal?.pricingOutputs?.moduleTotal || 0 }, // Module Total Cost
-    102: { value: proposal?.pricingOutputs?.inverterTotal || 0 }, // Inverter Total Cost
-    103: { value: proposal?.pricingOutputs?.taxRate || 0 }, // Tax Rate
-    104: { value: proposal?.pricingOutputs?.calculatedTaxes?.totalTax || 0 }, // Tax Amount
-    105: { value: proposal?.pricingOutputs?.valueAddersTotal || 0 }, // Value Adders Total
-    106: { value: proposal?.pricingOutputs?.systemAddersTotal || 0 }, // System Adders Total
-    107: { value: (proposal?.pricingOutputs?.adderPricing?.valueAdders?.length || 0) + (proposal?.pricingOutputs?.adderPricing?.systemAdders?.length || 0) }, // Adders Count
-    39: { value: (proposal?.pricingOutputs?.valueAddersTotal || 0) + (proposal?.pricingOutputs?.systemAddersTotal || 0) }, // Total Adders Amount
-    
-    // System Design
-    15: { value: calculateTotalPanels(proposal?.pricingOutputs?.design?.arrays) }, // Total Panel Count
-    20: { value: getFirstArrayModule(proposal)?.model || '' }, // Panel Model
-    23: { value: getFirstArrayModule(proposal)?.manufacturer || '' }, // Panel Manufacturer
-    24: { value: getFirstArrayModule(proposal)?.capacity || 0 }, // Panel Watts Each
-    25: { value: getFirstArrayModule(proposal)?.name || '' }, // Panel Name
-    79: { value: getFirstArrayModule(proposal)?.efficiency || 0 }, // Panel Efficiency
-    80: { value: getFirstArrayModule(proposal)?.degradation || 0 }, // Panel Degradation
-    81: { value: getFirstArrayModule(proposal)?.width || 0 }, // Panel Width mm
-    82: { value: getFirstArrayModule(proposal)?.length || 0 }, // Panel Length mm
-    29: { value: proposal?.pricingOutputs?.design?.arrays?.length || 0 }, // Array Count
-    26: { value: proposal?.design?.inverters?.[0]?.manufacturer || '' }, // Inverter Manufacturer
-    27: { value: proposal?.design?.inverters?.[0]?.model || '' }, // Inverter Model
-    28: { value: proposal?.design?.inverters?.[0]?.count || 0 }, // Inverter Count
-    84: { value: proposal?.design?.inverters?.[0]?.acOutput || 0 }, // Inverter AC Output
-    85: { value: proposal?.design?.inverters?.[0]?.efficiency || 0 }, // Inverter Efficiency
-    86: { value: proposal?.design?.inverters?.[0]?.isMicro || false }, // Is Microinverter
-    87: { value: proposal?.design?.inverters?.[0]?.panelRatio || 0 }, // DC AC Ratio
-    30: { value: proposal?.design?.roofMaterial || '' }, // Roof Material
-    31: { value: proposal?.design?.mountingType || '' }, // Mounting Type
-    32: { value: proposal?.design?.weightedTsrf || 0 }, // Weighted TSRF
-    53: { value: proposal?.design?.firstYearProduction || 0 }, // Annual Production kWh
-    54: { value: Math.round((proposal?.pricingOutputs?.design?.offset || 0) * 100) }, // System Offset Percent
-    88: { value: proposal?.design?.batteryCount || 0 }, // Battery Count
-    89: { value: proposal?.design?.batteryPurpose || '' }, // Battery Purpose
-    90: { value: proposal?.pricingOutputs?.batteryTotal || 0 }, // Battery Total Cost
-    91: { value: proposal?.pricingOutputs?.batteryTotal || 0 }, // Battery Adder Cost
-    83: { value: (proposal?.pricingOutputs?.systemSizeWatts || 0) / 1000 }, // System Size kW2
-    
-    // Address Info
-    73: { value: getAddressData(proposal).line1 }, // Address Line 1
-    74: { value: getAddressData(proposal).city }, // Address City
-    75: { value: getAddressData(proposal).state }, // Address State
-    76: { value: getAddressData(proposal).zip }, // Address Zip
-    18: { value: proposal?.pricingOutputs?.deal?.projectAddress?.fullAddress || '' }, // Address Full
-    77: { value: getAddressData(proposal).lat }, // Address Latitude
-    78: { value: getAddressData(proposal).lng }, // Address Longitude
-    
-    // Utility Info
-    55: { value: getUtilityData(proposal).companyName }, // Utility Company Name
-    125: { value: proposal?.design?.utility?.id || '' }, // Utility Company ID
-    126: { value: proposal?.design?.utility?.genabilityId || 0 }, // Genability Utility ID
-    127: { value: proposal?.design?.consumptionProfile?.tariff?.tariffName || '' }, // Rate Schedule Name
-    128: { value: proposal?.design?.consumptionProfile?.tariff?.tariffCode || 0 }, // Rate Schedule Code
-    129: { value: proposal?.design?.consumptionProfile?.tariff?.tariffId || 0 }, // Tariff ID
-    130: { value: proposal?.design?.consumptionProfile?.rate || 0 }, // Utility Rate per kWh
-    131: { value: proposal?.design?.consumptionProfile?.postSolarRate || 0 }, // Post Solar Rate
-    132: { value: proposal?.design?.consumptionProfile?.annualBill || 0 }, // Annual Bill Amount
-    133: { value: proposal?.design?.consumptionProfile?.averageMonthlyConsumption || 0 }, // Average Monthly Usage
-    57: { value: getUtilityData(proposal).averageMonthlyBill }, // Average Monthly Bill
-    56: { value: getUtilityData(proposal).annualConsumption }, // Annual Consumption kWh
-    134: { value: proposal?.design?.consumptionProfile?.buildingArea || 0 }, // Building Area sqft
-    
-    // Deal Status Flags
-    41: { value: deal.state?.hasSignedContract || false }, // Has Signed Contract
-    42: { value: deal.state?.hasDesign || false }, // Has Design
-    44: { value: deal.state?.financingStatus === 'approved' }, // Financing Approved
-    45: { value: deal.state?.['site-survey']?.['schedule-site-survey'] || false }, // Site Survey Scheduled
-    46: { value: deal.state?.['additional-work-substage']?.['is-there-additional-work'] || false }, // Additional Work Needed
-    124: { value: JSON.stringify(deal.state?.['additional-work-substage']?.['additional-work'] || []) }, // Additional Work Types
-    153: { value: deal.state?.hasCreatedProposal || false }, // Has Created Proposal
-    154: { value: deal.state?.hasApprovedContract || false }, // Has Approved Contract
-    155: { value: deal.state?.hasSubmittedProject || false }, // Has Submitted Project
-    156: { value: deal.state?.hasGeneratedContract || false }, // Has Generated Contract
-    157: { value: deal.state?.hasSubmittedFinancingApplication || false }, // Has Submitted Financing
-    158: { value: deal.state?.hasSignedFinancingDocs || false }, // Has Signed Financing Docs
-    159: { value: deal.state?.noDocumentsToSign || false }, // No Documents to Sign
-    160: { value: deal.state?.contractApprovalEnabled || false }, // Contract Approval Enabled
-    161: { value: deal.state?.['sales-rep-confirmation']?.['ready-to-submit'] || false }, // Ready to Submit
-    162: { value: deal.state?.['sales-rep-confirmation']?.['sales-rep-confirmation-message'] || false }, // Sales Rep Confirmation
-    163: { value: deal.state?.['site-survey']?.['site-survey-selection'] || '' }, // Site Survey Selection
-    164: { value: deal.state?.['system-offset']?.['new-move-in'] || '' }, // New Move In
-    166: { value: deal.state?.['system-offset']?.['are-there-any-shading-concerns'] || false }, // Shading Concerns
-    167: { value: deal.state?.['system-offset']?.['is-the-system-offset-below-100'] || false }, // System Offset Below 100%
-    
-    // Additional Work
-    48: { value: deal.state?.['additional-work-substage']?.['tree-removal-contractor'] || '' }, // Tree Removal Contractor
-    47: { value: getTreeRemovalData(deal).cost }, // Tree Removal Cost
-    109: { value: deal.state?.['additional-work-substage']?.['tree-trimming-contractor'] || '' }, // Tree Trimming Contractor
-    108: { value: findAdderAmount(proposal?.pricingOutputs?.adderPricing?.valueAdders, 'Tree Trimming') }, // Tree Trimming Cost
-    110: { value: deal.state?.['additional-work-substage']?.['tree-removal-contractor-phone-number'] || '' }, // Tree Contractor Phone
-    49: { value: deal.state?.['additional-work-substage']?.['how-many-optional-electrical-upgrades-are-needed'] || 0 }, // Electrical Upgrades Count
-    50: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Electrical Upgrade If Needed') || 0 }, // Electrical Upgrades Total
-    111: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName === 'Electrical Upgrade If Needed')?.costPerUpgrade || 0 }, // Electrical Cost Each
-    51: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Metal Roof Adder') || 0 }, // Metal Roof Adder
-    112: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName === 'Metal Roof Adder')?.ppw || 0 }, // Metal Roof PPW
-    52: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Trenching') || 0 }, // Trenching Cost
-    113: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Trenching'))?.fieldInputs?.['how-many-feet-of-trenching'] || 0 }, // Trenching Linear Feet
-    114: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Trenching'))?.displayName || '' }, // Trenching Type
-    115: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'HVAC') || 0 }, // HVAC Cost
-    116: { value: deal.state?.['additional-work-substage']?.['hvac-contractor-name'] || '' }, // HVAC Contractor
-    117: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Sub Panel') || 0 }, // Sub Panel Cost
-    118: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Generator') || 0 }, // Generator Cost
-    119: { value: proposal?.pricingOutputs?.adderPricing?.systemAdders?.find(a => a.displayName.includes('Generator'))?.displayName || '' }, // Generator Type
-    120: { value: findAdderAmount(proposal?.pricingOutputs?.calculatedSystemAdders, 'Re-Roof') || 0 }, // Re Roof Cost
-    
-    // Finance Info
-    135: { value: proposal?.pricingOutputs?.financeProduct?.financeMethodName || '' }, // Finance Type
-    136: { value: proposal?.pricingOutputs?.financeProduct?.name || '' }, // Finance Product Name
-    137: { value: proposal?.pricingOutputs?.financeProduct?.id || '' }, // Finance Product ID
-    138: { value: proposal?.pricingOutputs?.financeProduct?.financeMethodName || '' }, // Lender Name
-    139: { value: deal.state?.financingStatus || '' }, // Financing Status
-    140: { value: proposal?.pricingOutputs?.financeProduct?.termMonths || 0 }, // Loan Term Months
-    141: { value: proposal?.pricingOutputs?.financeProduct?.name || '' }, // Payment Structure
-    142: { value: deal.state?.['lender-welcome-call']?.['how-is-the-customer-making-their-down-payment'] || '' }, // Down Payment Method
-    
-    // Design Info
-    168: { value: proposal?.design?.id || '' }, // Design ID
-    169: { value: proposal?.design?.source?.tool || '' }, // Design Tool
-    170: { value: proposal?.design?.source?.id || '' }, // Design Source ID
-    
-    // Sales Team Info
-    66: { value: proposal?.pricingOutputs?.salesTeams?.[0]?.name || '' }, // Sales Team Name
-    67: { value: proposal?.pricingOutputs?.salesTeams?.[0]?.id || '' }, // Sales Team ID
-    70: { value: proposal?.pricingOutputs?.deal?.installer?.id || '' }, // Installer Org ID
-    
-    // JSON Fields for Complex Data
-    58: { value: JSON.stringify(proposal?.pricingOutputs?.design?.arrays || []) }, // Arrays JSON
-    59: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.valueAdders || []) }, // Value Adder JSON
-    60: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.systemAdders || []) }, // System Adders JSON
-    61: { value: JSON.stringify(deal.files || []) }, // All Files JSON
-    96: { value: JSON.stringify(proposal?.pricingOutputs?.rebates || []) }, // Rebates JSON
-    62: { value: deal.state?.['notes-comments'] || '' }, // Sales Notes
-    63: { value: deal.state?.['system-offset']?.['layout-preferences'] || '' }, // Layout Preferences
-    124: { value: JSON.stringify(deal.state?.['additional-work-substage']?.['additional-work'] || []) }, // Additional Work Types
-    123: { value: JSON.stringify(proposal?.design?.consumptionProfile?.consumption || []) }, // Monthly Consumption
-    121: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.valueAdders?.map(a => a.fieldInputs) || []) }, // Adder Dynamic Inputs JSON
-    122: { value: JSON.stringify(proposal?.pricingOutputs || {}) }, // Pricing Model JSON
-    
-    // File URLs
-    22: { value: getContractUrl(deal) }, // Contract Url
-    144: { value: findFileUrl(deal.files, 'signedContractFiles') }, // Installation Agreement URL
-    145: { value: findFileUrl(deal.files, 'full-utility-bill') }, // Utility Bill URL
-    146: { value: deal.files?.find(f => f.source === 'full-utility-bill')?.name || '' }, // Utility Bill Filename
-    147: { value: findFileUrl(deal.files, 'customers-photo-id') }, // Customer ID Photo URL
-    148: { value: findFileUrl(deal.files, 'proof-of-payment') }, // Proof of Payment URL
-    149: { value: findFileUrl(deal.files, 'tree-quote') }, // Tree Quote URL
-    150: { value: getTreeRemovalData(deal).quoteUrl }, // Tree Quote URL
-    151: { value: findFileUrl(deal.files, 'picture-of-site-of-tree-removal') }, // Tree Site Photo URL
-    152: { value: deal.files?.filter(f => f.source === 'additional-documentation').length || 0 }, // Total Files Count
-    153: { value: proposal ? true : false }, // Has Created Proposal
-    143: { value: deal.files?.find(f => f.source === 'signedContractFiles')?.name || '' }, // Contract Filename
-    
-    // Individual Adders (first 5)
-    192: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.displayName || '' }, // Adder 1 Name
-    193: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.amount || 0 }, // Adder 1 Cost
-    194: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.priceableEntityName || '' }, // Adder 1 Category
-    195: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 1 PPW
-    196: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.fieldInputs?.quantity || 0 }, // Adder 1 Quantity
-    
-    197: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.displayName || '' }, // Adder 2 Name
-    198: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.amount || 0 }, // Adder 2 Cost
-    199: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.priceableEntityName || '' }, // Adder 2 Category
-    200: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.fieldInputs?.quantity || 0 }, // Adder 2 Quantity
-    201: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 2 PPW
-    
-    202: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.displayName || '' }, // Adder 3 Name
-    204: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.amount || 0 }, // Adder 3 Cost
-    217: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.priceableEntityName || '' }, // Adder 3 Category
-    205: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.fieldInputs?.quantity || 0 }, // Adder 3 Quantity
-    206: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 3 PPW
-    
-    207: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.displayName || '' }, // Adder 4 Name
-    208: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.priceableEntityName || '' }, // Adder 4 Category
-    209: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.amount || 0 }, // Adder 4 Cost
-    210: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.fieldInputs?.quantity || 0 }, // Adder 4 Quantity
-    211: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 4 PPW
-    
-    212: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.displayName || '' }, // Adder 5 Name
-    213: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.priceableEntityName || '' }, // Adder 5 Category
-    214: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.amount || 0 }, // Adder 5 Cost
-    215: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.fieldInputs?.quantity || 0 }, // Adder 5 Quantity
-    216: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 5 PPW
-    
-    // Timestamps
-    186: { value: new Date().toISOString() }, // Created At
-    187: { value: new Date().toISOString() } // Updated At
-  };
-  
-  console.log(`✅ Mapped ${Object.keys(recordData).length} fields to QuickBase`);
-  return recordData;
-}
-
-// Add or update record in QuickBase
-async function upsertRecord(dealId, recordData) {
-  try {
-    const existingRecordId = await findExistingRecord(dealId);
-    
-    const url = `${QB_CONFIG.baseUrl}/records`;
-    const payload = {
-      to: QB_CONFIG.tableId,
-      data: existingRecordId ? [{
-        [3]: { value: existingRecordId },
-        ...recordData
-      }] : [recordData]
-    };
-
-    console.log(`🔄 ${existingRecordId ? 'Updating' : 'Creating'} record for deal ${dealId}`);
-    console.log(`📊 Payload size: ${JSON.stringify(payload).length} characters`);
-    console.log(`📊 Number of fields: ${Object.keys(recordData).length}`);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getQBHeaders(),
-      body: JSON.stringify(payload)
+    // Request logging with performance monitoring
+    this.app.use((req, res, next) => {
+      const requestId = `${req.method}-${req.path}-${Date.now()}`;
+      req.requestId = requestId;
+      
+      console.log(`📨 ${new Date().toISOString()} - ${req.method} ${req.path} [${requestId}]`);
+      this.performanceMonitor.startTimer(requestId, 'webhook_processing');
+      
+      next();
     });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ QuickBase API Error: ${response.status} ${response.statusText}`);
-      console.error(`❌ Error Details: ${errorText}`);
-      throw new Error(`QuickBase operation failed: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log(`✅ QuickBase API Response:`, JSON.stringify(result, null, 2));
-    
-    // Check if record was actually created
-    if (result.metadata?.createdRecordIds?.length > 0) {
-      console.log(`✅ Successfully created record ${result.metadata.createdRecordIds[0]} for deal ${dealId}`);
-    } else if (result.metadata?.updatedRecordIds?.length > 0) {
-      console.log(`✅ Successfully updated record ${result.metadata.updatedRecordIds[0]} for deal ${dealId}`);
-    } else {
-      console.warn(`⚠️  No record created or updated for deal ${dealId}`);
-      console.warn(`⚠️  QuickBase response:`, JSON.stringify(result, null, 2));
-    }
-    
-    return result;
-    
-  } catch (error) {
-    console.error('❌ Error in upsert operation:', error);
-    throw error;
   }
-}
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  const enrichmentStats = dataEnrichment.getStats();
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'enerflo-quickbase-webhook',
-    version: '2.0.0',
-    enrichment: enrichmentStats
-  });
-});
-
-// Enrichment status endpoint
-app.get('/enrichment/status', (req, res) => {
-  const stats = dataEnrichment.getStats();
-  res.json({
-    enabled: stats.enabled,
-    apiConfigured: stats.apiConfigured,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test endpoint
-app.get('/test', async (req, res) => {
-  try {
-    const url = `${QB_CONFIG.baseUrl}/records/query`;
-    const payload = {
-      from: QB_CONFIG.tableId,
-      select: [3],
-      limit: 1
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getQBHeaders(),
-      body: JSON.stringify(payload)
+  setupRoutes() {
+    // Health check endpoint
+    this.app.get('/health', (req, res) => {
+      const health = this.getHealthStatus();
+      res.json(health);
     });
-    
-    if (response.ok) {
-      res.json({ success: true, message: 'QuickBase connection successful' });
-    } else {
-      res.status(500).json({ success: false, error: 'QuickBase connection failed' });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
-// Main webhook endpoint
-app.post('/webhook/enerflo', async (req, res) => {
-  try {
-    console.log('📨 Received Enerflo webhook');
-    console.log('   Event type:', req.body.event);
-    console.log('   Deal ID:', req.body.payload?.deal?.id);
+    // Performance monitoring endpoint
+    this.app.get('/metrics', (req, res) => {
+      const metrics = this.performanceMonitor.getPerformanceSummary();
+      res.json(metrics);
+    });
+
+    // Main webhook endpoint
+    this.app.post('/webhook/enerflo', async (req, res) => {
+      try {
+        await this.handleWebhook(req, res);
+      } catch (error) {
+        console.error('❌ Critical error in webhook handler:', error);
+        this.performanceMonitor.endTimer(req.requestId, false, { error: error.message });
+        res.status(500).json({ 
+          error: 'Internal server error',
+          message: error.message 
+        });
+      }
+    });
+
+    // Test endpoint for development
+    this.app.post('/test/webhook', async (req, res) => {
+      try {
+        console.log('🧪 Test webhook endpoint called');
+        await this.handleWebhook(req, res);
+      } catch (error) {
+        console.error('❌ Test webhook error:', error);
+        this.performanceMonitor.endTimer(req.requestId, false, { error: error.message });
+        res.status(500).json({ 
+          error: 'Test webhook failed',
+          message: error.message 
+        });
+      }
+    });
+  }
+
+  setupErrorHandling() {
+    this.app.use((error, req, res, next) => {
+      console.error('❌ Unhandled error:', error);
+      this.performanceMonitor.endTimer(req.requestId, false, { error: error.message });
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: error.message 
+      });
+    });
+  }
+
+  async handleWebhook(req, res) {
+    const startTime = Date.now();
+    const requestId = req.requestId;
     
-    // Validate webhook payload
-    if (!req.body.event || !req.body.payload) {
-      return res.status(400).json({
+    try {
+      console.log(`🔄 Processing webhook request [${requestId}]`);
+      
+      // Step 1: Validate webhook payload
+      const validationResult = this.webhookValidator.validateWebhookPayload(req.body);
+      this.webhookValidator.printValidationReport(validationResult);
+      
+      if (!validationResult.isValid) {
+        throw new Error(`Webhook validation failed: ${validationResult.errors.join(', ')}`);
+      }
+
+      const webhookPayload = req.body;
+      const dealId = webhookPayload.payload.deal.id;
+      const customerName = `${webhookPayload.payload.customer.firstName} ${webhookPayload.payload.customer.lastName}`.trim();
+      
+      console.log(`📨 Processing webhook for deal ${dealId} (${customerName})`);
+
+      // Step 2: Map webhook data to QuickBase fields
+      this.performanceMonitor.startTimer(`${requestId}-mapping`, 'field_mapping');
+      const rawFieldMappings = this.dataMapper.mapWebhookToQuickBase(webhookPayload);
+      this.performanceMonitor.endTimer(`${requestId}-mapping`, true, { 
+        fieldCount: Object.keys(rawFieldMappings).length 
+      });
+
+      // Step 3: Convert data types
+      const convertedMappings = this.dataTypeConverter.convertAllFields(
+        rawFieldMappings, 
+        this.fieldValidator.quickbaseFields
+      );
+
+      // Step 4: Validate converted fields
+      const fieldValidationPassed = this.fieldValidator.validateAllMappings(convertedMappings);
+      if (!fieldValidationPassed) {
+        throw new Error('Field validation failed after data type conversion');
+      }
+
+      // Step 5: Create or update QuickBase record with error recovery
+      const quickbaseResult = await this.errorRecovery.retryWithBackoff(
+        () => this.upsertQuickBaseRecord(dealId, convertedMappings),
+        `QuickBase upsert for deal ${dealId}`
+      );
+      
+      // Step 6: Start enrichment process (async, don't wait)
+      this.enrichment.enrichRecord(quickbaseResult.recordId, dealId)
+        .catch(error => {
+          console.error('❌ Enrichment failed:', error);
+          this.performanceMonitor.addAlert('enrichment_failed', {
+            dealId,
+            recordId: quickbaseResult.recordId,
+            error: error.message
+          });
+        });
+
+      const processingTime = Date.now() - startTime;
+      this.performanceMonitor.endTimer(requestId, true, { 
+        dealId, 
+        recordId: quickbaseResult.recordId,
+        processingTime 
+      });
+      
+      console.log(`✅ Webhook processed successfully in ${processingTime}ms [${requestId}]`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Webhook processed successfully',
+        dealId,
+        recordId: quickbaseResult.recordId,
+        processingTime: `${processingTime}ms`,
+        requestId,
+        validation: {
+          errors: validationResult.errors.length,
+          warnings: validationResult.warnings.length
+        }
+      });
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      console.error(`❌ Webhook processing failed after ${processingTime}ms [${requestId}]:`, error.message);
+      
+      this.performanceMonitor.endTimer(requestId, false, { 
+        error: error.message,
+        processingTime 
+      });
+      
+      res.status(400).json({ 
         success: false,
-        error: 'Invalid webhook payload - missing event or payload'
+        error: 'Webhook processing failed',
+        message: error.message,
+        processingTime: `${processingTime}ms`,
+        requestId
       });
     }
-    
-    const dealId = req.body.payload.deal.id;
-    
-    // Transform webhook data to QuickBase format
-    const recordData = transformWebhookToQuickBase(req.body);
-    
-    // Upsert record to QuickBase
-    const result = await upsertRecord(dealId, recordData);
-    
-    console.log('✅ Webhook processed successfully');
-    
-    // Start data enrichment in background (don't wait for completion)
-    if (result.recordId) {
-      dataEnrichment.enrichRecord(result.recordId, req.body)
-        .then(enrichmentResult => {
-          if (enrichmentResult.success) {
-            console.log(`🎯 Data enrichment completed for record ${result.recordId}`);
-            console.log(`   Enriched ${enrichmentResult.enrichedFields.length} fields`);
-          } else {
-            console.log(`⚠️  Data enrichment failed for record ${result.recordId}:`, enrichmentResult.reason);
-          }
-        })
-        .catch(error => {
-          console.error(`❌ Data enrichment error for record ${result.recordId}:`, error.message);
-        });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Webhook processed successfully',
-      dealId: dealId,
-      eventType: req.body.event,
-      recordId: result.recordId,
-      action: result.action,
-      enrichmentStarted: !!result.recordId,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      dealId: req.body.payload?.deal?.id || 'unknown'
-    });
   }
-});
 
-// Test webhook endpoint
-app.post('/webhook/test', async (req, res) => {
-  try {
-    console.log('🧪 Testing webhook with sample data');
+  async upsertQuickBaseRecord(dealId, fieldMappings) {
+    const operationId = `qb-${dealId}-${Date.now()}`;
+    this.performanceMonitor.startTimer(operationId, 'quickbase_operation');
     
-    const sampleWebhook = {
-      event: 'deal.projectSubmitted',
-      payload: {
-        targetOrg: 'test-org',
-        initiatedBy: 'test-user',
-        deal: {
-          id: 'test-deal-123',
-          shortCode: 'test123',
-          state: {
-            hasDesign: true,
-            hasSignedContract: true,
-            hasSubmittedProject: true
-          }
-        },
-        customer: {
-          id: 'test-customer',
-          firstName: 'Test',
-          lastName: 'Customer'
-        }
+    try {
+      // Check if record already exists
+      const existingRecordId = await this.findExistingRecord(dealId);
+      
+      const payload = {
+        to: process.env.QB_TABLE_ID,
+        data: [fieldMappings]
+      };
+
+      const url = existingRecordId 
+        ? `https://${process.env.QB_REALM}/db/${process.env.QB_TABLE_ID}?a=API_EditRecord&rid=${existingRecordId}`
+        : `https://${process.env.QB_REALM}/db/${process.env.QB_TABLE_ID}?a=API_AddRecord`;
+
+      console.log(`🔄 ${existingRecordId ? 'Updating' : 'Creating'} record for deal ${dealId}`);
+      console.log(`📊 Payload size: ${JSON.stringify(payload).length} characters`);
+      console.log(`📊 Number of fields: ${Object.keys(fieldMappings).length}`);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getQuickBaseHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ QuickBase API Error: ${response.status} ${response.statusText}`);
+        console.error(`❌ Error Details: ${errorText}`);
+        
+        this.performanceMonitor.endTimer(operationId, false, { 
+          operation: existingRecordId ? 'update' : 'create',
+          error: errorText 
+        });
+        
+        throw new Error(`QuickBase operation failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
-    };
-    
-    const dealId = sampleWebhook.payload.deal.id;
-    const recordData = transformWebhookToQuickBase(sampleWebhook);
-    const result = await upsertRecord(dealId, recordData);
-    
-    // Start data enrichment in background for test
-    if (result.recordId) {
-      dataEnrichment.enrichRecord(result.recordId, sampleWebhook)
-        .then(enrichmentResult => {
-          console.log(`🧪 Test enrichment completed: ${enrichmentResult.enrichedFields.length} fields enriched`);
-        })
-        .catch(error => {
-          console.error(`🧪 Test enrichment error:`, error.message);
-        });
+
+      const result = await response.json();
+      console.log(`✅ QuickBase API Response:`, JSON.stringify(result, null, 2));
+
+      // Determine record ID
+      let recordId;
+      if (result.metadata?.createdRecordIds?.length > 0) {
+        recordId = result.metadata.createdRecordIds[0];
+        console.log(`✅ Successfully created record ${recordId} for deal ${dealId}`);
+      } else if (result.metadata?.updatedRecordIds?.length > 0) {
+        recordId = result.metadata.updatedRecordIds[0];
+        console.log(`✅ Successfully updated record ${recordId} for deal ${dealId}`);
+      } else {
+        throw new Error(`No record created or updated for deal ${dealId}`);
+      }
+
+      this.performanceMonitor.endTimer(operationId, true, { 
+        operation: existingRecordId ? 'update' : 'create',
+        recordId 
+      });
+
+      return { recordId, result };
+
+    } catch (error) {
+      this.performanceMonitor.endTimer(operationId, false, { 
+        operation: 'upsert',
+        error: error.message 
+      });
+      
+      throw error;
     }
+  }
+
+  async findExistingRecord(dealId) {
+    try {
+      const query = {
+        from: process.env.QB_TABLE_ID,
+        select: [3], // Record ID field
+        where: `{6.EX.'${dealId}'}` // Enerflo Deal ID field
+      };
+
+      const response = await fetch(`https://${process.env.QB_REALM}/db/${process.env.QB_TABLE_ID}?a=API_DoQuery`, {
+        method: 'POST',
+        headers: this.getQuickBaseHeaders(),
+        body: JSON.stringify(query)
+      });
+
+      if (!response.ok) {
+        console.warn(`⚠️  Could not check for existing record: ${response.status}`);
+        return null;
+      }
+
+      const result = await response.json();
+      return result.data?.[0]?.[3] || null;
+
+    } catch (error) {
+      console.warn(`⚠️  Error checking for existing record: ${error.message}`);
+      return null;
+    }
+  }
+
+  getQuickBaseHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'QB-Realm-Hostname': process.env.QB_REALM,
+      'Authorization': `QB-USER-TOKEN ${process.env.QB_USER_TOKEN}`
+    };
+  }
+
+  getHealthStatus() {
+    const performance = this.performanceMonitor.getPerformanceSummary();
     
-    res.json({
-      success: true,
-      message: 'Test webhook processed successfully',
-      result,
-      enrichmentStarted: !!result.recordId
-    });
-    
-  } catch (error) {
-    console.error('❌ Test webhook error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      health: performance.health,
+      agents: [
+        'Webhook Validator',
+        'Field Validator', 
+        'Data Type Converter',
+        'Error Recovery',
+        'Performance Monitor',
+        'Enerflo API Client v2',
+        'Data Enrichment v2'
+      ],
+      metrics: {
+        webhookProcessing: performance.metrics.webhookProcessing.total,
+        quickbaseOperations: performance.metrics.quickbaseOperations.total,
+        enerfloAPI: performance.metrics.enerfloAPI.total
+      },
+      alerts: performance.alerts.length,
+      uptime: process.uptime()
+    };
+  }
+
+  start(port = process.env.PORT || 3000) {
+    this.app.listen(port, () => {
+      console.log(`🚀 Enerflo Webhook Server v2.0.0 running on port ${port}`);
+      console.log(`📡 Webhook endpoint: http://localhost:${port}/webhook/enerflo`);
+      console.log(`🏥 Health check: http://localhost:${port}/health`);
+      console.log(`📊 Metrics: http://localhost:${port}/metrics`);
+      console.log(`🧪 Test endpoint: http://localhost:${port}/test/webhook`);
+      console.log('');
+      console.log('🛡️  Agents loaded:');
+      console.log('  ✅ Webhook Validator');
+      console.log('  ✅ Field Validator');
+      console.log('  ✅ Data Type Converter');
+      console.log('  ✅ Error Recovery');
+      console.log('  ✅ Performance Monitor');
+      console.log('  ✅ Enerflo API Client v2');
+      console.log('  ✅ Data Enrichment v2');
+      console.log('');
+      console.log('🎯 Ready to process webhooks with bulletproof reliability!');
     });
   }
-});
+}
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('🚀 ENHANCED Enerflo-QuickBase Webhook Server Started');
-  console.log(`📡 Server running on port ${PORT}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🧪 Test endpoint: http://localhost:${PORT}/test`);
-  console.log(`📨 Webhook endpoint: http://localhost:${PORT}/webhook/enerflo`);
-  console.log(`🧪 Test webhook: http://localhost:${PORT}/webhook/test`);
-  console.log('');
-  console.log('📋 QuickBase Configuration:');
-  console.log(`   Realm: ${QB_CONFIG.realm}`);
-  console.log(`   Table ID: ${QB_CONFIG.tableId}`);
-  console.log('');
-  console.log('✅ Ready to receive webhooks with FULL field mapping!');
-});
+// Start the server
+const server = new EnerfloWebhookServerV2();
+server.start();
 
-module.exports = app;
+module.exports = EnerfloWebhookServerV2;
