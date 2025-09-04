@@ -8,8 +8,8 @@ class WebhookValidator {
       'payload.proposal': 'object'
     };
     
-    this.requiredDealFields = ['id', 'status'];
-    this.requiredCustomerFields = ['id', 'firstName', 'lastName', 'email'];
+    this.requiredDealFields = ['id'];
+    this.requiredCustomerFields = ['id', 'firstName', 'lastName'];
     this.requiredProposalFields = ['id', 'pricingOutputs'];
   }
 
@@ -79,14 +79,9 @@ class WebhookValidator {
       }
     });
 
-    // Validate deal ID format
+    // Validate deal ID format (Enerflo uses UUID format)
     if (deal.id && typeof deal.id === 'string' && deal.id.length < 10) {
       errors.push('Deal ID appears to be too short or invalid');
-    }
-
-    // Validate status
-    if (deal.status && !['draft', 'submitted', 'approved', 'rejected', 'completed'].includes(deal.status)) {
-      errors.push(`Unknown deal status: ${deal.status}`);
     }
 
     return errors;
@@ -101,7 +96,7 @@ class WebhookValidator {
       }
     });
 
-    // Validate email format
+    // Validate email format (if present)
     if (customer.email && !this.isValidEmail(customer.email)) {
       errors.push(`Invalid customer email format: ${customer.email}`);
     }
@@ -145,7 +140,12 @@ class WebhookValidator {
 
     // Validate design structure
     if (pricingOutputs.design) {
-      if (!pricingOutputs.design.systemSize || pricingOutputs.design.systemSize <= 0) {
+      // Check for system size in multiple possible locations
+      const systemSize = pricingOutputs.design.systemSize || 
+                        pricingOutputs.design.totalSystemSizeWatts || 
+                        pricingOutputs.totalSystemSizeWatts;
+      
+      if (!systemSize || systemSize <= 0) {
         errors.push('Invalid or missing system size in design');
       }
       
