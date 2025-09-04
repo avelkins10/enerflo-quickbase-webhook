@@ -62,9 +62,9 @@ A comprehensive data enrichment system that automatically fetches missing custom
 - ✅ Validation Timestamp (Field ID 190)
 - ✅ Validation Notes (Field ID 191)
 
-### Sales Team Data (2 fields)
-- ✅ Setter (Field ID 218)
-- ✅ Closer (Field ID 219)
+### Sales Team Data (2 fields) - **NOW AVAILABLE IN WEBHOOK**
+- ✅ Setter (Field ID 218) - Mapped from `payload.initiatedBy` (Lead Owner)
+- ✅ Closer (Field ID 219) - Mapped from `payload.salesRep.id` (Sales Rep)
 
 ## 🚀 How It Works
 

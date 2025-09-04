@@ -178,17 +178,9 @@ class DataEnrichment {
                 enrichment.enrichedFields.push('Updated At');
             }
 
-            // Setter (Field ID 218)
-            if (dealData.setter && !updates[218]) {
-                updates[218] = { value: dealData.setter };
-                enrichment.enrichedFields.push('Setter');
-            }
-
-            // Closer (Field ID 219)
-            if (dealData.closer && !updates[219]) {
-                updates[219] = { value: dealData.closer };
-                enrichment.enrichedFields.push('Closer');
-            }
+            // Note: Setter and Closer are now mapped directly from webhook data
+            // Setter (Field ID 218) = payload.initiatedBy (Lead Owner)
+            // Closer (Field ID 219) = payload.salesRep.id (Sales Rep)
 
             // Update QuickBase record if we have data
             if (Object.keys(updates).length > 0) {

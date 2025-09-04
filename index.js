@@ -95,8 +95,8 @@ function transformWebhookToQuickBase(webhook) {
     68: { value: payload.initiatedBy || '' }, // Initiated By User ID
     69: { value: payload.targetOrg || '' }, // Target Organization ID
     71: { value: webhook.event || '' }, // Event Type
-    218: { value: deal.setter || '' }, // Setter
-    219: { value: deal.closer || '' }, // Closer
+    218: { value: payload.initiatedBy || '' }, // Setter (Lead Owner)
+    219: { value: payload.salesRep?.id || '' }, // Closer (Sales Rep)
     
     // Proposal Info
     72: { value: proposal?.id || '' }, // Proposal ID

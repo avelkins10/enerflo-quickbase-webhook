@@ -60,9 +60,9 @@ The enrichment function fetches and populates the following missing fields:
 - **Validation Timestamp** (Field ID 190)
 - **Validation Notes** (Field ID 191)
 
-### Sales Team Data
-- **Setter** (Field ID 218)
-- **Closer** (Field ID 219)
+### Sales Team Data - **NOW AVAILABLE IN WEBHOOK**
+- **Setter** (Field ID 218) - Mapped from `payload.initiatedBy` (Lead Owner)
+- **Closer** (Field ID 219) - Mapped from `payload.salesRep.id` (Sales Rep)
 
 ## API Endpoints
 
