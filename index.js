@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const DataEnrichment = require('./data-enrichment');
 const app = express();
+
+// Initialize Data Enrichment
+const dataEnrichment = new DataEnrichment();
 
 // Middleware
 app.use(cors());
@@ -341,11 +345,23 @@ async function upsertRecord(dealId, recordData) {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  const enrichmentStats = dataEnrichment.getStats();
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'enerflo-quickbase-webhook',
-    version: '2.0.0'
+    version: '2.0.0',
+    enrichment: enrichmentStats
+  });
+});
+
+// Enrichment status endpoint
+app.get('/enrichment/status', (req, res) => {
+  const stats = dataEnrichment.getStats();
+  res.json({
+    enabled: stats.enabled,
+    apiConfigured: stats.apiConfigured,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -399,11 +415,31 @@ app.post('/webhook/enerflo', async (req, res) => {
     const result = await upsertRecord(dealId, recordData);
     
     console.log('✅ Webhook processed successfully');
+    
+    // Start data enrichment in background (don't wait for completion)
+    if (result.recordId) {
+      dataEnrichment.enrichRecord(result.recordId, req.body)
+        .then(enrichmentResult => {
+          if (enrichmentResult.success) {
+            console.log(`🎯 Data enrichment completed for record ${result.recordId}`);
+            console.log(`   Enriched ${enrichmentResult.enrichedFields.length} fields`);
+          } else {
+            console.log(`⚠️  Data enrichment failed for record ${result.recordId}:`, enrichmentResult.reason);
+          }
+        })
+        .catch(error => {
+          console.error(`❌ Data enrichment error for record ${result.recordId}:`, error.message);
+        });
+    }
+    
     res.json({
       success: true,
       message: 'Webhook processed successfully',
       dealId: dealId,
       eventType: req.body.event,
+      recordId: result.recordId,
+      action: result.action,
+      enrichmentStarted: !!result.recordId,
       timestamp: new Date().toISOString()
     });
     
@@ -450,10 +486,22 @@ app.post('/webhook/test', async (req, res) => {
     const recordData = transformWebhookToQuickBase(sampleWebhook);
     const result = await upsertRecord(dealId, recordData);
     
+    // Start data enrichment in background for test
+    if (result.recordId) {
+      dataEnrichment.enrichRecord(result.recordId, sampleWebhook)
+        .then(enrichmentResult => {
+          console.log(`🧪 Test enrichment completed: ${enrichmentResult.enrichedFields.length} fields enriched`);
+        })
+        .catch(error => {
+          console.error(`🧪 Test enrichment error:`, error.message);
+        });
+    }
+    
     res.json({
       success: true,
       message: 'Test webhook processed successfully',
-      result
+      result,
+      enrichmentStarted: !!result.recordId
     });
     
   } catch (error) {
