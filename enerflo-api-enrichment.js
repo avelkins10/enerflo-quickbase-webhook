@@ -55,6 +55,29 @@ class EnerfloAPIEnrichment {
   }
 
   /**
+   * Get CallPilot/Welcome Call data from Enerflo API
+   * @param {string} dealId - The deal ID from the webhook payload
+   * @returns {Object} CallPilot data with welcome call details
+   */
+  async getCallPilotData(dealId) {
+    try {
+      console.log(`🔍 Fetching CallPilot data for deal: ${dealId}`);
+      const response = await axios.get(`${this.baseURL}/api/v1/callpilot/answers/${dealId}`, {
+        headers: {
+          'api-key': this.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log(`✅ Successfully fetched CallPilot data for deal: ${dealId}`);
+      return response.data;
+    } catch (error) {
+      console.log(`❌ CallPilot data not available for deal ${dealId}: ${error.response?.status || error.message}`);
+      return null; // Return null if no CallPilot data is available
+    }
+  }
+
+  /**
    * Enrich webhook data with missing information from Enerflo API
    * @param {Object} webhookPayload - Original webhook payload
    * @returns {Object} Enriched payload with additional data
@@ -68,12 +91,16 @@ class EnerfloAPIEnrichment {
       // Get full install object from API
       const fullInstall = await this.getFullInstallObject(dealId);
       
+      // Get CallPilot data from separate endpoint
+      const callPilotData = await this.getCallPilotData(dealId);
+      
       // Create enriched payload
       const enrichedPayload = {
         ...webhookPayload,
         enriched: true,
         enrichmentTimestamp: new Date().toISOString(),
-        fullInstall: fullInstall
+        fullInstall: fullInstall,
+        callPilot: callPilotData
       };
       
       // Extract missing customer data
@@ -149,7 +176,7 @@ class EnerfloAPIEnrichment {
         enrichedFields[70] = { value: fullInstall.installer.id }; // Installer Org ID
       }
       
-      // CallPilot/Welcome Call enrichment
+      // CallPilot/Welcome Call enrichment from fullInstall
       if (fullInstall.welcomeCall) {
         enrichedFields[170] = { value: fullInstall.welcomeCall.id }; // Welcome Call ID
         enrichedFields[171] = { value: fullInstall.welcomeCall.date }; // Welcome Call Date
@@ -160,8 +187,37 @@ class EnerfloAPIEnrichment {
         enrichedFields[176] = { value: fullInstall.welcomeCall.agent }; // Welcome Call Agent
         enrichedFields[177] = { value: fullInstall.welcomeCall.outcome }; // Welcome Call Outcome
       }
+    }
+    
+    // CallPilot/Welcome Call enrichment from separate CallPilot API
+    if (enrichedPayload.enriched && enrichedPayload.callPilot) {
+      const callPilot = enrichedPayload.callPilot;
       
-      // Add any other enriched fields as needed
+      // Map CallPilot data to QuickBase fields
+      if (callPilot.id) {
+        enrichedFields[170] = { value: callPilot.id }; // Welcome Call ID
+      }
+      if (callPilot.date) {
+        enrichedFields[171] = { value: callPilot.date }; // Welcome Call Date
+      }
+      if (callPilot.duration) {
+        enrichedFields[172] = { value: callPilot.duration }; // Welcome Call Duration
+      }
+      if (callPilot.recordingUrl) {
+        enrichedFields[173] = { value: callPilot.recordingUrl }; // Welcome Call Recording URL
+      }
+      if (callPilot.questions) {
+        enrichedFields[174] = { value: JSON.stringify(callPilot.questions) }; // Welcome Call Questions JSON
+      }
+      if (callPilot.answers) {
+        enrichedFields[175] = { value: JSON.stringify(callPilot.answers) }; // Welcome Call Answers JSON
+      }
+      if (callPilot.agent) {
+        enrichedFields[176] = { value: callPilot.agent }; // Welcome Call Agent
+      }
+      if (callPilot.outcome) {
+        enrichedFields[177] = { value: callPilot.outcome }; // Welcome Call Outcome
+      }
     }
     
     return enrichedFields;
