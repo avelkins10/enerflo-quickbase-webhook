@@ -1,23 +1,24 @@
 {
   "name": "enerflo-quickbase-webhook",
-  "version": "1.0.0",
-  "description": "Solar Design Dashboard - Enerflo to QuickBase Integration",
+  "version": "2.0.0",
+  "description": "Enhanced Enerflo webhook integration with QuickBase - Full field mapping",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-webhook.js"
   },
-  "keywords": ["solar", "webhook", "quickbase", "enerflo"],
-  "author": "Kin Solar",
-  "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "body-parser": "^1.20.2",
-    "dotenv": "^16.3.1"
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
+  },
+  "keywords": ["enerflo", "quickbase", "webhook", "integration", "solar", "crm"],
+  "author": "Austin Elkins",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

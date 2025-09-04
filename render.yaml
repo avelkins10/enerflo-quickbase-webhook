@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: enerflo-quickbase-webhook
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: QB_REALM
+        value: kin.quickbase.com
+      - key: QB_TABLE_ID
+        value: bveiu6xy5
+      - key: QB_USER_TOKEN
+        value: b6um6p_p3bs_0_bmrupwzbc82cdnb44a7pirtbxif
+      - key: ENERFLO_API_KEY
+        sync: false  # You'll set this in Render dashboard
+      - key: ENERFLO_WEBHOOK_SECRET
+        sync: false  # You'll set this in Render dashboard
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main

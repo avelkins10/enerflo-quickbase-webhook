@@ -1,0 +1,186 @@
+QuickBase Field Label,QuickBase Field ID,Enerflo Webhook Path,Data Type,Mapping Notes,Array Handling
+Enerflo Deal ID,6,payload.deal.id,String,Primary key mapping,No
+Customer First Name,16,payload.customer.firstName,String,Direct mapping,No
+Customer Last Name,17,payload.customer.lastName,String,Direct mapping,No
+Customer Full Name,7,payload.customer.firstName + payload.customer.lastName,String,Concatenated,No
+Customer ID,64,payload.customer.id,String,Direct mapping,No
+Customer Email,10,payload.customer.email,String,If available in webhook,No
+Customer Phone,11,payload.customer.phone,String,If available in webhook,No
+Proposal ID,72,payload.proposal.id,String,Direct mapping,No
+Sales Rep ID,65,payload.salesRep.id,String,Direct mapping,No
+Sales Team ID,67,payload.proposal.pricingOutputs.salesTeams[0].id,String,First team,Yes
+Sales Team Name,66,payload.proposal.pricingOutputs.salesTeams[0].name,String,First team,Yes
+Initiated By User ID,68,payload.initiatedBy,String,Direct mapping,No
+Target Organization ID,69,payload.targetOrg,String,Direct mapping,No
+Installer Org ID,70,payload.proposal.pricingOutputs.deal.installer.id,String,Direct mapping,No
+Event Type,71,payload.event,String,Direct mapping,No
+System Size Watts,19,payload.proposal.pricingOutputs.systemSizeWatts,Number,Direct mapping,No
+System Size kW,14,payload.proposal.pricingOutputs.systemSizeWatts / 1000,Number,Calculated,No
+System Size kW2,83,payload.proposal.pricingOutputs.systemSizeWatts / 1000,Number,Calculated,No
+Total Panel Count,15,payload.proposal.design.arrays[].moduleCount,Number,Sum of all arrays,Yes
+Panel Model,20,payload.proposal.design.arrays[0].module.model,String,First array,Yes
+Panel Manufacturer,23,payload.proposal.design.arrays[0].module.manufacturer,String,First array,Yes
+Panel Name,25,payload.proposal.design.arrays[0].module.name,String,First array,Yes
+Panel Watts Each,24,payload.proposal.design.arrays[0].module.capacity,Number,First array,Yes
+Panel Efficiency,79,payload.proposal.design.arrays[0].module.efficiency,Number,First array,Yes
+Panel Degradation,80,payload.proposal.design.arrays[0].module.degradation,Number,First array,Yes
+Panel Width mm,81,payload.proposal.design.arrays[0].module.width,Number,First array,Yes
+Panel Length mm,82,payload.proposal.design.arrays[0].module.length,Number,First array,Yes
+Array Count,29,payload.proposal.design.arrays.length,Number,Count of arrays,Yes
+Inverter Manufacturer,26,payload.proposal.design.inverters[0].manufacturer,String,First array,Yes
+Inverter Model,27,payload.proposal.design.inverters[0].model,String,First array,Yes
+Inverter Count,28,payload.proposal.design.inverters[0].count,Number,First array,Yes
+Inverter AC Output,84,payload.proposal.design.inverters[0].acOutput,Number,First array,Yes
+Inverter Efficiency,85,payload.proposal.design.inverters[0].efficiency,Number,First array,Yes
+Is Microinverter,86,payload.proposal.design.inverters[0].isMicro,Boolean,First array,Yes
+DC AC Ratio,87,payload.proposal.design.inverters[0].panelRatio,Number,First array,Yes
+Battery Count,88,payload.proposal.design.batteryCount,Number,Direct mapping,No
+Battery Purpose,89,payload.proposal.design.batteryPurpose,String,Direct mapping,No
+Roof Material,30,payload.proposal.design.roofMaterial,String,Direct mapping,No
+Mounting Type,31,payload.proposal.design.mountingType,String,Direct mapping,No
+Weighted TSRF,32,payload.proposal.design.weightedTsrf,Number,Direct mapping,No
+Annual Production kWh,53,payload.proposal.design.firstYearProduction,Number,Direct mapping,No
+System Offset Percent,54,payload.proposal.design.offset,Number,Direct mapping,No
+Gross Cost,21,payload.proposal.pricingOutputs.grossCost,Currency,Direct mapping,No
+Base Cost,33,payload.proposal.pricingOutputs.baseCost,Currency,Direct mapping,No
+Net Cost After ITC,34,payload.proposal.pricingOutputs.netCost,Currency,Direct mapping,No
+Base PPW,35,payload.proposal.pricingOutputs.basePPW,Number,Direct mapping,No
+Gross PPW,36,payload.proposal.pricingOutputs.grossPPW,Number,Direct mapping,No
+Net PPW,93,payload.proposal.pricingOutputs.netPPW,Number,Direct mapping,No
+Federal ITC Amount,37,payload.proposal.pricingOutputs.federalRebateTotal,Currency,Direct mapping,No
+Federal ITC Percent,94,payload.proposal.pricingOutputs.rebates[0].pricingOption.inputs.itcPercent,Number,First rebate,Yes
+Down Payment Amount,38,payload.proposal.pricingOutputs.downPayment * payload.proposal.pricingOutputs.grossCost,Currency,Calculated,No
+Down Payment Percent,99,payload.proposal.pricingOutputs.downPayment,Number,Direct mapping,No
+Total Adders Amount,39,payload.proposal.pricingOutputs.valueAddersTotal + payload.proposal.pricingOutputs.systemAddersTotal,Currency,Calculated,No
+Finance Cost,40,payload.proposal.pricingOutputs.financeCost,Currency,Direct mapping,No
+Commission Base,92,payload.proposal.pricingOutputs.commissionBase,Currency,Direct mapping,No
+Rebates Total,95,payload.proposal.pricingOutputs.rebatesTotal,Currency,Direct mapping,No
+Dealer Fee,97,payload.proposal.pricingOutputs.dealerFee,Currency,Direct mapping,No
+Dealer Fee Percent,98,payload.proposal.pricingOutputs.dealerFeePercent,Number,Direct mapping,No
+Equipment Total,100,payload.proposal.pricingOutputs.equipmentTotal,Currency,Direct mapping,No
+Module Total Cost,101,payload.proposal.pricingOutputs.moduleTotal,Currency,Direct mapping,No
+Inverter Total Cost,102,payload.proposal.pricingOutputs.inverterTotal,Currency,Direct mapping,No
+Tax Rate,103,payload.proposal.pricingOutputs.taxRate,Number,Direct mapping,No
+Tax Amount,104,payload.proposal.pricingOutputs.calculatedTaxes.totalTax,Currency,Direct mapping,No
+Value Adders Total,105,payload.proposal.pricingOutputs.valueAddersTotal,Currency,Direct mapping,No
+System Adders Total,106,payload.proposal.pricingOutputs.systemAddersTotal,Currency,Direct mapping,No
+Adders Count,107,payload.proposal.pricingOutputs.adderPricing.valueAdders.length + payload.proposal.pricingOutputs.adderPricing.systemAdders.length,Number,Calculated,No
+Battery Total Cost,90,payload.proposal.pricingOutputs.batteryTotal,Currency,Direct mapping,No
+Battery Adder Cost,91,payload.proposal.pricingOutputs.batteryTotal,Currency,Direct mapping,No
+Has Signed Contract,41,payload.deal.state.hasSignedContract,Boolean,Direct mapping,No
+Has Design,42,payload.deal.state.hasDesign,Boolean,Direct mapping,No
+Financing Approved,44,payload.deal.state.financingStatus === 'approved',Boolean,Calculated,No
+Site Survey Scheduled,45,payload.deal.state.site-survey.schedule-site-survey,Boolean,Direct mapping,No
+Additional Work Needed,46,payload.deal.state.additional-work-substage.is-there-additional-work,Boolean,Direct mapping,No
+Has Created Proposal,153,payload.deal.state.hasCreatedProposal,Boolean,Direct mapping,No
+Has Approved Contract,154,payload.deal.state.hasApprovedContract,Boolean,Direct mapping,No
+Has Submitted Project,155,payload.deal.state.hasSubmittedProject,Boolean,Direct mapping,No
+Has Generated Contract,156,payload.deal.state.hasGeneratedContract,Boolean,Direct mapping,No
+Has Submitted Financing,157,payload.deal.state.hasSubmittedFinancingApplication,Boolean,Direct mapping,No
+Has Signed Financing Docs,158,payload.deal.state.hasSignedFinancingDocs,Boolean,Direct mapping,No
+No Documents to Sign,159,payload.deal.state.noDocumentsToSign,Boolean,Direct mapping,No
+Contract Approval Enabled,160,payload.deal.state.contractApprovalEnabled,Boolean,Direct mapping,No
+Ready to Submit,161,payload.deal.state.sales-rep-confirmation.ready-to-submit,Boolean,Direct mapping,No
+Sales Rep Confirmation,162,payload.deal.state.sales-rep-confirmation.sales-rep-confirmation-message,Boolean,Direct mapping,No
+Site Survey Selection,163,payload.deal.state.site-survey.site-survey-selection,String,Direct mapping,No
+New Move In,164,payload.deal.state.system-offset.new-move-in,String,Direct mapping,No
+Shading Concerns,166,payload.deal.state.system-offset.are-there-any-shading-concerns,Boolean,Direct mapping,No
+System Offset Below 100%,167,payload.deal.state.system-offset.is-the-system-offset-below-100,Boolean,Direct mapping,No
+Tree Removal Cost,47,payload.proposal.pricingOutputs.adderPricing.valueAdders[].amount,Currency,Find tree removal adder,Yes
+Tree Removal Contractor,48,payload.deal.state.additional-work-substage.tree-removal-contractor,String,Direct mapping,No
+Tree Trimming Cost,108,payload.proposal.pricingOutputs.adderPricing.valueAdders[].amount,Currency,Find tree trimming adder,Yes
+Tree Trimming Contractor,109,payload.deal.state.additional-work-substage.tree-trimming-contractor,String,Direct mapping,No
+Tree Contractor Phone,110,payload.deal.state.additional-work-substage.tree-removal-contractor-phone-number,String,Direct mapping,No
+Electrical Upgrades Count,49,payload.deal.state.additional-work-substage.how-many-optional-electrical-upgrades-are-needed,Number,Direct mapping,No
+Electrical Upgrades Total,50,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find electrical upgrade adder,Yes
+Electrical Cost Each,111,payload.proposal.pricingOutputs.adderPricing.systemAdders[].costPerUpgrade,Currency,Find electrical upgrade adder,Yes
+Metal Roof Adder,51,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find metal roof adder,Yes
+Metal Roof PPW,112,payload.proposal.pricingOutputs.adderPricing.systemAdders[].ppw,Number,Find metal roof adder,Yes
+Trenching Cost,52,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find trenching adder,Yes
+Trenching Linear Feet,113,payload.proposal.pricingOutputs.adderPricing.systemAdders[].fieldInputs.how-many-feet-of-trenching,Number,Find trenching adder,Yes
+Trenching Type,114,payload.proposal.pricingOutputs.adderPricing.systemAdders[].name,String,Find trenching adder,Yes
+HVAC Cost,115,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find HVAC adder,Yes
+HVAC Contractor,116,payload.deal.state.additional-work-substage.hvac-contractor-name,String,Direct mapping,No
+Sub Panel Cost,117,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find sub panel adder,Yes
+Generator Cost,118,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find generator adder,Yes
+Generator Type,119,payload.proposal.pricingOutputs.adderPricing.systemAdders[].name,String,Find generator adder,Yes
+Re Roof Cost,120,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Currency,Find re-roof adder,Yes
+Utility Company Name,55,payload.proposal.design.utility.name,String,Direct mapping,No
+Utility Company ID,125,payload.proposal.design.utility.id,String,Direct mapping,No
+Genability Utility ID,126,payload.proposal.design.utility.genabilityId,Number,Direct mapping,No
+Rate Schedule Name,127,payload.proposal.design.consumptionProfile.tariff.tariffName,String,Direct mapping,No
+Rate Schedule Code,128,payload.proposal.design.consumptionProfile.tariff.tariffCode,Number,Direct mapping,No
+Tariff ID,129,payload.proposal.design.consumptionProfile.tariff.tariffId,Number,Direct mapping,No
+Utility Rate per kWh,130,payload.proposal.design.consumptionProfile.rate,Number,Direct mapping,No
+Post Solar Rate,131,payload.proposal.design.consumptionProfile.postSolarRate,Number,Direct mapping,No
+Annaul Bill Amount,132,payload.proposal.design.consumptionProfile.annualBill,Currency,Direct mapping,No
+Average Monthly Usage,133,payload.proposal.design.consumptionProfile.averageMonthlyConsumption,Number,Direct mapping,No
+Average Monthly Bill,57,payload.proposal.design.consumptionProfile.averageMonthlyBill,Currency,Direct mapping,No
+Annual Consmption kWh,56,payload.proposal.design.consumptionProfile.annualConsumption,Number,Direct mapping,No
+Building Area sqft,134,payload.proposal.design.consumptionProfile.buildingArea,Number,Direct mapping,No
+Finance Type,135,payload.proposal.pricingOutputs.financeProduct.financeMethodName,String,Direct mapping,No
+Finance Product Name,136,payload.proposal.pricingOutputs.financeProduct.name,String,Direct mapping,No
+Finance Product ID,137,payload.proposal.pricingOutputs.financeProduct.id,String,Direct mapping,No
+Lender Name,138,payload.proposal.pricingOutputs.financeProduct.financeMethodName,String,Direct mapping,No
+Financing Status,139,payload.deal.state.financingStatus,String,Direct mapping,No
+Loan Term Months,140,payload.proposal.pricingOutputs.financeProduct.termMonths,Number,Direct mapping,No
+Payment Structure,141,payload.proposal.pricingOutputs.financeProduct.name,String,Direct mapping,No
+Down Payment Method,142,payload.deal.state.lender-welcome-call.how-is-the-customer-making-their-down-payment,String,Direct mapping,No
+Address Line 1,73,payload.proposal.pricingOutputs.deal.projectAddress.line1,String,Direct mapping,No
+Address City,74,payload.proposal.pricingOutputs.deal.projectAddress.city,String,Direct mapping,No
+Address State,75,payload.proposal.pricingOutputs.deal.projectAddress.state,String,Direct mapping,No
+Address Zip,76,payload.proposal.pricingOutputs.deal.projectAddress.postalCode,Number,Direct mapping,No
+Address Full,18,payload.proposal.pricingOutputs.deal.projectAddress.fullAddress,String,Direct mapping,No
+Address Latitude,77,payload.proposal.pricingOutputs.deal.projectAddress.lat,Number,Direct mapping,No
+Address Longitude,78,payload.proposal.pricingOutputs.deal.projectAddress.lng,Number,Direct mapping,No
+Design ID,168,payload.proposal.design.id,String,Direct mapping,No
+Design Tool,169,payload.proposal.design.source.tool,String,Direct mapping,No
+Design Source ID,170,payload.proposal.design.source.id,String,Direct mapping,No
+Arrays JSON,58,payload.proposal.design.arrays,JSON,Full array object,Yes
+Value Adder JSON,59,payload.proposal.pricingOutputs.adderPricing.valueAdders,JSON,Full array object,Yes
+System Adders JSON,60,payload.proposal.pricingOutputs.adderPricing.systemAdders,JSON,Full array object,Yes
+All Files JSON,61,payload.deal.files,JSON,Full array object,Yes
+Sales Notes,62,payload.deal.state.notes-comments,String,Direct mapping,No
+Layout Preferences,63,payload.deal.state.system-offset.layout-preferences,String,Direct mapping,No
+Layout Preferences2,165,payload.deal.state.system-offset.layout-preferences,String,Direct mapping,No
+Additional Work Types,124,payload.deal.state.additional-work-substage.additional-work,JSON,Array as JSON,Yes
+Monthly Consumption,123,payload.proposal.design.consumptionProfile.consumption,JSON,Array as JSON,Yes
+Adder Dynamic Inputs JSON,121,payload.proposal.pricingOutputs.adderPricing.valueAdders[].fieldInputs,JSON,All field inputs,Yes
+Pricing Model JSON,122,payload.proposal.pricingOutputs,JSON,Full pricing model,No
+Rebates JSON,96,payload.proposal.pricingOutputs.rebates,JSON,Full array object,Yes
+Contract Filename,143,payload.deal.files[].name,String,Find executed contract file,Yes
+Installation Agreement URL,144,payload.deal.files[].url,URL,Find installation agreement file,Yes
+Utility Bill URL,145,payload.deal.files[].url,URL,Find utility bill file,Yes
+Utility Bill Filename,146,payload.deal.files[].name,String,Find utility bill file,Yes
+Customer ID Photo URL,147,payload.deal.files[].url,URL,Find customer photo ID file,Yes
+Proof of Payment UTL,148,payload.deal.files[].url,URL,Find proof of payment file,Yes
+Tree Quote URL,149,payload.deal.files[].url,URL,Find tree quote file,Yes
+Tree Site Photo URL,150,payload.deal.files[].url,URL,Find tree site photo file,Yes
+Additional Docs URLs,151,payload.deal.files[].url,JSON,All additional doc URLs,Yes
+Total Files Count,152,payload.deal.files.length,Number,Count of files,Yes
+Contract Url,22,payload.deal.files[].url,URL,Find executed contract file,Yes
+Adder 1 Name,192,payload.proposal.pricingOutputs.adderPricing.valueAdders[0].displayName,String,First value adder,Yes
+Adder 1 Cost,193,payload.proposal.pricingOutputs.adderPricing.valueAdders[0].amount,Currency,First value adder,Yes
+Adder 1 Category,194,payload.proposal.pricingOutputs.adderPricing.valueAdders[0].priceableEntityName,String,First value adder,Yes
+Adder 1 PPW,195,payload.proposal.pricingOutputs.adderPricing.valueAdders[0].pricingOption.model.amount.ppw,Number,First value adder,Yes
+Adder 1 Quantity,196,payload.proposal.pricingOutputs.adderPricing.valueAdders[0].fieldInputs.quantity,Number,First value adder,Yes
+Adder 2 Name,197,payload.proposal.pricingOutputs.adderPricing.valueAdders[1].displayName,String,Second value adder,Yes
+Adder 2 Cost,198,payload.proposal.pricingOutputs.adderPricing.valueAdders[1].amount,Currency,Second value adder,Yes
+Adder 2 Category,199,payload.proposal.pricingOutputs.adderPricing.valueAdders[1].priceableEntityName,String,Second value adder,Yes
+Adder 2 Quantity,200,payload.proposal.pricingOutputs.adderPricing.valueAdders[1].fieldInputs.quantity,Number,Second value adder,Yes
+Adder 2 PPW,201,payload.proposal.pricingOutputs.adderPricing.valueAdders[1].pricingOption.model.amount.ppw,Number,Second value adder,Yes
+Adder 3 Name,202,payload.proposal.pricingOutputs.adderPricing.valueAdders[2].displayName,String,Third value adder,Yes
+Adder 3 Cost,204,payload.proposal.pricingOutputs.adderPricing.valueAdders[2].amount,Currency,Third value adder,Yes
+Adder 3 Category,217,payload.proposal.pricingOutputs.adderPricing.valueAdders[2].priceableEntityName,String,Third value adder,Yes
+Adder 3 Quantity,205,payload.proposal.pricingOutputs.adderPricing.valueAdders[2].fieldInputs.quantity,Number,Third value adder,Yes
+Adder 3 PPW,206,payload.proposal.pricingOutputs.adderPricing.valueAdders[2].pricingOption.model.amount.ppw,Number,Third value adder,Yes
+Adder 4 Name,207,payload.proposal.pricingOutputs.adderPricing.valueAdders[3].displayName,String,Fourth value adder,Yes
+Adder 4 Category,208,payload.proposal.pricingOutputs.adderPricing.valueAdders[3].priceableEntityName,String,Fourth value adder,Yes
+Adder 4 Cost,209,payload.proposal.pricingOutputs.adderPricing.valueAdders[3].amount,Currency,Fourth value adder,Yes
+Adder 4 Quantity,210,payload.proposal.pricingOutputs.adderPricing.valueAdders[3].fieldInputs.quantity,Number,Fourth value adder,Yes
+Adder 4 PPW,211,payload.proposal.pricingOutputs.adderPricing.valueAdders[3].pricingOption.model.amount.ppw,Number,Fourth value adder,Yes
+Adder 5 Name,212,payload.proposal.pricingOutputs.adderPricing.valueAdders[4].displayName,String,Fifth value adder,Yes
+Adder 5 Category,213,payload.proposal.pricingOutputs.adderPricing.valueAdders[4].priceableEntityName,String,Fifth value adder,Yes
+Adder 5 Cost,214,payload.proposal.pricingOutputs.adderPricing.valueAdders[4].amount,Currency,Fifth value adder,Yes
+Adder 5 Quantity,215,payload.proposal.pricingOutputs.adderPricing.valueAdders[4].fieldInputs.quantity,Number,Fifth value adder,Yes
+Adder 5 PPW,216,payload.proposal.pricingOutputs.adderPricing.valueAdders[4].pricingOption.model.amount.ppw,Number,Fifth value adder,Yes

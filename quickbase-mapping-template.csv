@@ -1,0 +1,125 @@
+Entity,Field Category,Enerflo Path,Data Type,QuickBase Table,QuickBase Field Name,Field Type,Required,Notes,Array Handling
+Customer,Basic Info,payload.customer.id,String,Customers,Customer ID,Text,Yes,Primary Key,No
+Customer,Basic Info,payload.customer.firstName,String,Customers,First Name,Text,Yes,,No
+Customer,Basic Info,payload.customer.lastName,String,Customers,Last Name,Text,Yes,,No
+Deal,Basic Info,payload.deal.id,String,Deals,Deal ID,Text,Yes,Primary Key,No
+Deal,Basic Info,payload.deal.shortCode,String,Deals,Deal Code,Text,No,,No
+Deal,Basic Info,payload.targetOrg,String,Deals,Target Organization,Text,Yes,,No
+Deal,Basic Info,payload.initiatedBy,String,Deals,Initiated By,Text,Yes,,No
+Deal,Basic Info,payload.salesRep.id,String,Deals,Sales Rep ID,Text,Yes,,No
+Deal,Status,payload.deal.state.hasDesign,Boolean,Deals,Has Design,Checkbox,No,,No
+Deal,Status,payload.deal.state.financingStatus,String,Deals,Financing Status,Text,No,,No
+Deal,Status,payload.deal.state.selectedProposal,String,Deals,Selected Proposal ID,Text,No,,No
+Deal,Status,payload.deal.state.hasSignedContract,Boolean,Deals,Contract Signed,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasApprovedContract,Boolean,Deals,Contract Approved,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasSubmittedProject,Boolean,Deals,Project Submitted,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasCreatedProposal,Boolean,Deals,Proposal Created,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasGeneratedContract,Boolean,Deals,Contract Generated,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasSignedFinancingDocs,Boolean,Deals,Financing Docs Signed,Checkbox,No,,No
+Deal,Status,payload.deal.state.hasSubmittedFinancingApplication,Boolean,Deals,Financing App Submitted,Checkbox,No,,No
+Deal,Notes,payload.deal.state.notes-comments,String,Deals,Notes Comments,Text,No,,No
+Deal,Site Survey,payload.deal.state.site-survey.schedule-site-survey,Boolean,Deals,Schedule Site Survey,Checkbox,No,,No
+Deal,Site Survey,payload.deal.state.site-survey.site-survey-selection,String,Deals,Site Survey Type,Text,No,,No
+Deal,Site Survey,payload.deal.state.site-survey.site-survey-calendly-id,String,Deals,Site Survey Calendly ID,Text,No,,No
+Deal,Utility Bill,payload.deal.state.utility-bill.full-ub-example,Boolean,Deals,Full UB Example,Checkbox,No,,No
+Deal,System Offset,payload.deal.state.system-offset.new-move-in,String,Deals,New Move In,Text,No,,No
+Deal,System Offset,payload.deal.state.system-offset.layout-preferences,String,Deals,Layout Preferences,Text,No,,No
+Deal,System Offset,payload.deal.state.system-offset.are-there-any-shading-concerns,Boolean,Deals,Shading Concerns,Checkbox,No,,No
+Deal,System Offset,payload.deal.state.system-offset.is-the-system-offset-below-100,Boolean,Deals,System Offset Below 100%,Checkbox,No,,No
+Deal,Financing,payload.deal.state.lender-welcome-call.lender-dropdown,String,Deals,Lender Type,Text,No,,No
+Deal,Financing,payload.deal.state.lender-welcome-call.how-is-the-customer-making-their-down-payment,String,Deals,Down Payment Method,Text,No,,No
+Deal,Financing,payload.deal.state.lender-welcome-call.additional-steps-cash,Boolean,Deals,Additional Steps Cash,Checkbox,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.is-there-additional-work,Boolean,Deals,Has Additional Work,Checkbox,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.additional-work,Array,Deals,Additional Work Types,Text,No,Comma separated,Yes
+Deal,Additional Work,payload.deal.state.additional-work-substage.tree-removal-contractor,String,Deals,Tree Removal Contractor,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.tree-removal-contractor-phone-number,String,Deals,Tree Removal Phone,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.tree-trimming-contractor,String,Deals,Tree Trimming Contractor,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.tree-trimming-contractor-phone-number,String,Deals,Tree Trimming Phone,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.hvac-contractor-name,String,Deals,HVAC Contractor,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.hvac-contractor-phone-number,String,Deals,HVAC Phone,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.roof-contractor,String,Deals,Roof Contractor,Text,No,,No
+Deal,Additional Work,payload.deal.state.additional-work-substage.roof-contractor-phone-number,String,Deals,Roof Contractor Phone,Text,No,,No
+Proposal,Basic Info,payload.proposal.id,String,Proposals,Proposal ID,Text,Yes,Primary Key,No
+Proposal,Pricing,payload.proposal.pricingOutputs.netPPW,Number,Proposals,Net Price Per Watt,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.basePPW,Number,Proposals,Base Price Per Watt,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.grossPPW,Number,Proposals,Gross Price Per Watt,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.netCost,Number,Proposals,Net Cost,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.baseCost,Number,Proposals,Base Cost,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.grossCost,Number,Proposals,Gross Cost,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.systemSizeWatts,Number,Proposals,System Size Watts,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.downPayment,Number,Proposals,Down Payment Percent,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.financeCost,Number,Proposals,Finance Cost,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.dealerFee,Number,Proposals,Dealer Fee,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.taxRate,Number,Proposals,Tax Rate,Number,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.rebatesTotal,Number,Proposals,Total Rebates,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.discountsTotal,Number,Proposals,Total Discounts,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.valueAddersTotal,Number,Proposals,Total Value Adders,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.systemAddersTotal,Number,Proposals,Total System Adders,Currency,No,,No
+Proposal,Pricing,payload.proposal.pricingOutputs.federalRebateTotal,Number,Proposals,Federal Rebate Total,Currency,No,,No
+Proposal,Design,payload.proposal.design.totalSystemSizeWatts,Number,Proposals,Total System Size Watts,Number,No,,No
+Proposal,Design,payload.proposal.design.arrays[].moduleCount,Number,Proposals,Total Panel Count,Number,No,Sum of all arrays,Yes
+Proposal,Design,payload.proposal.design.arrays[].module.capacity,Number,Proposals,Panel Capacity,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].module.manufacturer,String,Proposals,Panel Manufacturer,Text,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].module.model,String,Proposals,Panel Model,Text,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].module.efficiency,Number,Proposals,Panel Efficiency,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].azimuth,Number,Proposals,Primary Azimuth,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].pitch,Number,Proposals,Primary Pitch,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.arrays[].solarAccess,Number,Proposals,Average Solar Access,Number,No,Average of all arrays,Yes
+Proposal,Design,payload.proposal.design.inverters[].name,String,Proposals,Inverter Name,Text,No,First array value,Yes
+Proposal,Design,payload.proposal.design.inverters[].model,String,Proposals,Inverter Model,Text,No,First array value,Yes
+Proposal,Design,payload.proposal.design.inverters[].count,Number,Proposals,Inverter Count,Number,No,Sum of all arrays,Yes
+Proposal,Design,payload.proposal.design.inverters[].acOutput,Number,Proposals,AC Output,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.inverters[].manufacturer,String,Proposals,Inverter Manufacturer,Text,No,First array value,Yes
+Proposal,Design,payload.proposal.design.inverters[].efficiency,Number,Proposals,Inverter Efficiency,Number,No,First array value,Yes
+Proposal,Design,payload.proposal.design.utility.name,String,Proposals,Utility Company,Text,No,,No
+Proposal,Design,payload.proposal.design.utility.genabilityId,Number,Proposals,Utility Genability ID,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.annualConsumption,Number,Proposals,Annual Consumption,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.annualBill,Number,Proposals,Annual Bill,Currency,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.averageUtilityRate,Number,Proposals,Average Utility Rate,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.averageMonthlyBill,Number,Proposals,Average Monthly Bill,Currency,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.averageMonthlyConsumption,Number,Proposals,Average Monthly Consumption,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.buildingArea,Number,Proposals,Building Area,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.rate,Number,Proposals,Utility Rate,Number,No,,No
+Proposal,Design,payload.proposal.design.consumptionProfile.postSolarRate,Number,Proposals,Post Solar Rate,Number,No,,No
+Proposal,Design,payload.proposal.design.firstYearProduction,Number,Proposals,First Year Production,Number,No,,No
+Proposal,Design,payload.proposal.design.offset,Number,Proposals,System Offset,Number,No,,No
+Proposal,Design,payload.proposal.design.weightedTsrf,Number,Proposals,Weighted TSRF,Number,No,,No
+Proposal,Design,payload.proposal.design.mountingType,String,Proposals,Mounting Type,Text,No,,No
+Proposal,Design,payload.proposal.design.roofMaterial,String,Proposals,Roof Material,Text,No,,No
+Proposal,Design,payload.proposal.design.batteryCount,Number,Proposals,Battery Count,Number,No,,No
+Proposal,Design,payload.proposal.design.batteryPurpose,String,Proposals,Battery Purpose,Text,No,,No
+Proposal,Design,payload.proposal.design.inverterCount,Number,Proposals,Inverter Count,Number,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.line1,String,Proposals,Address Line 1,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.line2,String,Proposals,Address Line 2,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.line3,String,Proposals,Address Line 3,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.city,String,Proposals,City,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.state,String,Proposals,State,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.postalCode,Number,Proposals,ZIP Code,Number,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.country,String,Proposals,Country,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.fullAddress,String,Proposals,Full Address,Text,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.lat,Number,Proposals,Latitude,Number,No,,No
+Proposal,Address,payload.proposal.pricingOutputs.deal.projectAddress.lng,Number,Proposals,Longitude,Number,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.name,String,Proposals,Finance Product Name,Text,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.plugin,String,Proposals,Finance Plugin,Text,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.termMonths,Number,Proposals,Term Months,Number,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.dealerFeePercent,Number,Proposals,Dealer Fee Percent,Number,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.status,String,Proposals,Finance Product Status,Text,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.methodId,String,Proposals,Finance Method ID,Text,No,,No
+Proposal,Finance Product,payload.proposal.pricingOutputs.financeProduct.financeMethodName,String,Proposals,Finance Method Name,Text,No,,No
+Files,Basic Info,payload.deal.files[].id,String,Files,File ID,Text,Yes,Primary Key,Yes
+Files,Basic Info,payload.deal.files[].name,String,Files,File Name,Text,Yes,,Yes
+Files,Basic Info,payload.deal.files[].source,String,Files,File Source,Text,No,,Yes
+Files,Basic Info,payload.deal.files[].url,String,Files,File URL,Text,No,,Yes
+Files,Basic Info,payload.deal.files[].isPublic,Boolean,Files,Is Public,Checkbox,No,,Yes
+Rebates,Basic Info,payload.proposal.pricingOutputs.rebates[].displayName,String,Rebates,Rebate Name,Text,No,,Yes
+Rebates,Basic Info,payload.proposal.pricingOutputs.rebates[].pricingOption.type,String,Rebates,Rebate Type,Text,No,,Yes
+Rebates,Basic Info,payload.proposal.pricingOutputs.rebates[].pricingOption.inputs.itcPercent,Number,Rebates,ITC Percent,Number,No,,Yes
+Rebates,Basic Info,payload.proposal.pricingOutputs.rebates[].pricingOption.inputs.amount,Number,Rebates,Rebate Amount,Currency,No,,Yes
+Adders,Value Adders,payload.proposal.pricingOutputs.adderPricing.valueAdders[].displayName,String,Adders,Adder Name,Text,No,,Yes
+Adders,Value Adders,payload.proposal.pricingOutputs.adderPricing.valueAdders[].amount,Number,Adders,Adder Amount,Currency,No,,Yes
+Adders,Value Adders,payload.proposal.pricingOutputs.adderPricing.valueAdders[].fieldInputs,Object,Adders,Adder Field Inputs,Text,No,JSON string,Yes
+Adders,System Adders,payload.proposal.pricingOutputs.adderPricing.systemAdders[].displayName,String,Adders,System Adder Name,Text,No,,Yes
+Adders,System Adders,payload.proposal.pricingOutputs.adderPricing.systemAdders[].amount,Number,Adders,System Adder Amount,Currency,No,,Yes
+Adders,System Adders,payload.proposal.pricingOutputs.adderPricing.systemAdders[].fieldInputs,Object,Adders,System Adder Field Inputs,Text,No,JSON string,Yes
+Sales Teams,Basic Info,payload.proposal.pricingOutputs.salesTeams[].id,String,Sales Teams,Sales Team ID,Text,No,,Yes
+Sales Teams,Basic Info,payload.proposal.pricingOutputs.salesTeams[].name,String,Sales Teams,Sales Team Name,Text,No,,Yes

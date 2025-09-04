@@ -38,14 +38,20 @@ const findFileUrl = (files, source) => {
   return file ? file.url : '';
 };
 
+const findFileByName = (files, name) => {
+  if (!files) return '';
+  const file = files.find(f => f.name && f.name.includes(name));
+  return file ? file.url : '';
+};
+
 // Find existing record by Enerflo Deal ID
 async function findExistingRecord(dealId) {
   const url = `${QB_CONFIG.baseUrl}/records/query`;
   
   const payload = {
     from: QB_CONFIG.tableId,
-    where: `{6.EX.'${dealId}'}`,
-    select: [3]
+    where: `{6.EX.'${dealId}'}`, // Field 6 = Enerflo Deal ID
+    select: [3] // Field 3 = Record ID#
   };
 
   try {
@@ -74,10 +80,10 @@ function transformWebhookToQuickBase(webhook) {
   const customer = payload.customer;
   const proposal = payload.proposal;
   
-  console.log('🔄 Transforming webhook data...');
-  console.log('   Deal ID:', deal.id);
-  console.log('   Customer:', customer.firstName, customer.lastName);
-  console.log('   System Size:', proposal?.pricingOutputs?.systemSizeWatts, 'W');
+  console.log('Transforming webhook data...');
+  console.log('Deal ID:', deal.id);
+  console.log('Customer:', customer.firstName, customer.lastName);
+  console.log('Proposal ID:', proposal?.id);
   
   // Complete field mapping - ALL 150+ fields
   const recordData = {
@@ -249,7 +255,7 @@ function transformWebhookToQuickBase(webhook) {
     121: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.valueAdders?.map(a => a.fieldInputs) || []) }, // Adder Dynamic Inputs JSON
     122: { value: JSON.stringify(proposal?.pricingOutputs || {}) }, // Pricing Model JSON
     
-    // File URLs
+    // File URLs (find specific files by source)
     22: { value: findFileUrl(deal.files, 'signedContractFiles') }, // Contract Url
     144: { value: findFileUrl(deal.files, 'signedContractFiles') }, // Installation Agreement URL
     145: { value: findFileUrl(deal.files, 'full-utility-bill') }, // Utility Bill URL
@@ -298,7 +304,7 @@ function transformWebhookToQuickBase(webhook) {
     187: { value: new Date().toISOString() } // Updated At
   };
   
-  console.log(`✅ Mapped ${Object.keys(recordData).length} fields to QuickBase`);
+  console.log(`Mapped ${Object.keys(recordData).length} fields to QuickBase`);
   return recordData;
 }
 
@@ -311,12 +317,12 @@ async function upsertRecord(dealId, recordData) {
     const payload = {
       to: QB_CONFIG.tableId,
       data: existingRecordId ? [{
-        [3]: { value: existingRecordId },
+        [3]: { value: existingRecordId }, // Field 3 = Record ID#
         ...recordData
       }] : [recordData]
     };
 
-    console.log(`🔄 ${existingRecordId ? 'Updating' : 'Creating'} record for deal ${dealId}`);
+    console.log(`${existingRecordId ? 'Updating' : 'Creating'} record for deal ${dealId}`);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -379,8 +385,8 @@ app.get('/test', async (req, res) => {
 app.post('/webhook/enerflo', async (req, res) => {
   try {
     console.log('📨 Received Enerflo webhook');
-    console.log('   Event type:', req.body.event);
-    console.log('   Deal ID:', req.body.payload?.deal?.id);
+    console.log('Event type:', req.body.event);
+    console.log('Deal ID:', req.body.payload?.deal?.id);
     
     // Validate webhook payload
     if (!req.body.event || !req.body.payload) {
@@ -424,6 +430,7 @@ app.post('/webhook/test', async (req, res) => {
   try {
     console.log('🧪 Testing webhook with sample data');
     
+    // Sample webhook data (you can replace this with your actual sample)
     const sampleWebhook = {
       event: 'deal.projectSubmitted',
       payload: {
@@ -468,7 +475,7 @@ app.post('/webhook/test', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('🚀 ENHANCED Enerflo-QuickBase Webhook Server Started');
+  console.log('🚀 Enhanced Enerflo-QuickBase Webhook Server Started');
   console.log(`📡 Server running on port ${PORT}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`🧪 Test endpoint: http://localhost:${PORT}/test`);
