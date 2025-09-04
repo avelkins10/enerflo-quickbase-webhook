@@ -417,7 +417,8 @@ function mapWebhookToQuickBase(webhookPayload) {
       }
     }
     
-    quickbaseRecord[220] = validateUrl(designImageUrl); // Design Image URL
+    // Design Image URL - field 220 doesn't exist in QuickBase, will add later
+    // quickbaseRecord[220] = validateUrl(designImageUrl); // Design Image URL
   }
   
   // ===== WELCOME CALL DATA =====
