@@ -389,8 +389,34 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[168] = design.id; // Design ID
     quickbaseRecord[169] = design.source?.tool; // Design Tool
     quickbaseRecord[170] = design.source?.id; // Design Source ID
-    // Design Image URL - get the first design file URL if available
-    const designImageUrl = design.files && design.files.length > 0 ? design.files[0].url : null;
+    
+    // Design Image URL - look for design images from multiple sources
+    let designImageUrl = null;
+    
+    // First, check if there are design files in the design object
+    if (design.files && design.files.length > 0) {
+      designImageUrl = design.files[0].url;
+    }
+    // If no design files, check if there are proposal files
+    else if (proposal?.files && proposal.files.length > 0) {
+      // Look for image files in proposal files
+      const imageFile = proposal.files.find(file => 
+        file.name && (file.name.toLowerCase().includes('.png') || 
+                     file.name.toLowerCase().includes('.jpg') || 
+                     file.name.toLowerCase().includes('.jpeg'))
+      );
+      if (imageFile) {
+        designImageUrl = imageFile.url;
+      }
+    }
+    // If still no image, check module thumbnails (fallback)
+    else if (design.arrays && design.arrays.length > 0) {
+      const firstArray = design.arrays[0];
+      if (firstArray.module?.thumbnail?.externalUrl) {
+        designImageUrl = firstArray.module.thumbnail.externalUrl;
+      }
+    }
+    
     quickbaseRecord[220] = validateUrl(designImageUrl); // Design Image URL
   }
   
