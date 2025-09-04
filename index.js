@@ -136,8 +136,8 @@ function transformWebhookToQuickBase(webhook) {
     68: { value: payload.initiatedBy || '' }, // Initiated By User ID
     69: { value: payload.targetOrg || '' }, // Target Organization ID
     71: { value: webhook.event || '' }, // Event Type
-    218: { value: payload.salesRep?.id || '' }, // Setter (Lead Owner) - Austin Elkins
-    219: { value: payload.salesRep?.id || '' }, // Closer (Sales Rep) - Austin Elkins
+    218: { value: deal.salesRep?.id || payload.initiatedBy || '' }, // Setter (Lead Owner)
+    219: { value: deal.salesRep?.id || payload.initiatedBy || '' }, // Closer (Sales Rep)
     
     // Proposal Info
     72: { value: proposal?.id || '' }, // Proposal ID
@@ -312,35 +312,35 @@ function transformWebhookToQuickBase(webhook) {
     143: { value: deal.files?.find(f => f.source === 'signedContractFiles')?.name || '' }, // Contract Filename
     
     // Individual Adders (first 5)
-    192: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[0]?.displayName || '' }, // Adder 1 Name
-    193: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[0]?.amount || 0 }, // Adder 1 Cost
-    194: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[0]?.priceableEntityName || '' }, // Adder 1 Category
-    195: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[0]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 1 PPW
-    196: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[0]?.fieldInputs?.quantity || 0 }, // Adder 1 Quantity
+    192: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.displayName || '' }, // Adder 1 Name
+    193: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.amount || 0 }, // Adder 1 Cost
+    194: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.priceableEntityName || '' }, // Adder 1 Category
+    195: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 1 PPW
+    196: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[0]?.fieldInputs?.quantity || 0 }, // Adder 1 Quantity
     
-    197: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[1]?.displayName || '' }, // Adder 2 Name
-    198: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[1]?.amount || 0 }, // Adder 2 Cost
-    199: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[1]?.priceableEntityName || '' }, // Adder 2 Category
-    200: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[1]?.fieldInputs?.quantity || 0 }, // Adder 2 Quantity
-    201: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[1]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 2 PPW
+    197: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.displayName || '' }, // Adder 2 Name
+    198: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.amount || 0 }, // Adder 2 Cost
+    199: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.priceableEntityName || '' }, // Adder 2 Category
+    200: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.fieldInputs?.quantity || 0 }, // Adder 2 Quantity
+    201: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[1]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 2 PPW
     
-    202: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[2]?.displayName || '' }, // Adder 3 Name
-    204: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[2]?.amount || 0 }, // Adder 3 Cost
-    217: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[2]?.priceableEntityName || '' }, // Adder 3 Category
-    205: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[2]?.fieldInputs?.quantity || 0 }, // Adder 3 Quantity
-    206: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[2]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 3 PPW
+    202: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.displayName || '' }, // Adder 3 Name
+    204: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.amount || 0 }, // Adder 3 Cost
+    217: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.priceableEntityName || '' }, // Adder 3 Category
+    205: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.fieldInputs?.quantity || 0 }, // Adder 3 Quantity
+    206: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[2]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 3 PPW
     
-    207: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[3]?.displayName || '' }, // Adder 4 Name
-    208: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[3]?.priceableEntityName || '' }, // Adder 4 Category
-    209: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[3]?.amount || 0 }, // Adder 4 Cost
-    210: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[3]?.fieldInputs?.quantity || 0 }, // Adder 4 Quantity
-    211: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[3]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 4 PPW
+    207: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.displayName || '' }, // Adder 4 Name
+    208: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.priceableEntityName || '' }, // Adder 4 Category
+    209: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.amount || 0 }, // Adder 4 Cost
+    210: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.fieldInputs?.quantity || 0 }, // Adder 4 Quantity
+    211: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[3]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 4 PPW
     
-    212: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[4]?.displayName || '' }, // Adder 5 Name
-    213: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[4]?.priceableEntityName || '' }, // Adder 5 Category
-    214: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[4]?.amount || 0 }, // Adder 5 Cost
-    215: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[4]?.fieldInputs?.quantity || 0 }, // Adder 5 Quantity
-    216: { value: proposal?.pricingOutputs?.adderPricing?.valueAdders?.[4]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 5 PPW
+    212: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.displayName || '' }, // Adder 5 Name
+    213: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.priceableEntityName || '' }, // Adder 5 Category
+    214: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.amount || 0 }, // Adder 5 Cost
+    215: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.fieldInputs?.quantity || 0 }, // Adder 5 Quantity
+    216: { value: proposal?.pricingOutputs?.calculatedValueAdders?.[4]?.pricingOption?.model?.amount?.ppw || 0 }, // Adder 5 PPW
     
     // Timestamps
     186: { value: new Date().toISOString() }, // Created At
