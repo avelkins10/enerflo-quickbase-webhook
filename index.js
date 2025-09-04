@@ -194,9 +194,9 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
       
       const updateResponse = await axios.post(url, updatePayload, { headers });
       
-      if (updateResponse.data.updatedRecordIds && updateResponse.data.updatedRecordIds.length > 0) {
-        console.log(`[${requestId}] Successfully updated QuickBase record: ${updateResponse.data.updatedRecordIds[0]}`);
-        return updateResponse.data.updatedRecordIds[0];
+      if (updateResponse.data.metadata && updateResponse.data.metadata.updatedRecordIds && updateResponse.data.metadata.updatedRecordIds.length > 0) {
+        console.log(`[${requestId}] Successfully updated QuickBase record: ${updateResponse.data.metadata.updatedRecordIds[0]}`);
+        return updateResponse.data.metadata.updatedRecordIds[0];
       } else {
         throw new Error('Failed to update QuickBase record - no updated record IDs returned');
       }
@@ -212,9 +212,9 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
       
       console.log(`[${requestId}] QuickBase create response:`, JSON.stringify(createResponse.data, null, 2));
       
-      if (createResponse.data.createdRecordIds && createResponse.data.createdRecordIds.length > 0) {
-        console.log(`[${requestId}] Successfully created QuickBase record: ${createResponse.data.createdRecordIds[0]}`);
-        return createResponse.data.createdRecordIds[0];
+      if (createResponse.data.metadata && createResponse.data.metadata.createdRecordIds && createResponse.data.metadata.createdRecordIds.length > 0) {
+        console.log(`[${requestId}] Successfully created QuickBase record: ${createResponse.data.metadata.createdRecordIds[0]}`);
+        return createResponse.data.metadata.createdRecordIds[0];
       } else {
         console.error(`[${requestId}] QuickBase create failed. Full response:`, JSON.stringify(createResponse.data, null, 2));
         throw new Error('Failed to create QuickBase record - no created record IDs returned');
