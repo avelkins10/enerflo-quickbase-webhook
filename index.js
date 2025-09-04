@@ -181,7 +181,7 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
     const queryUrl = `https://api.quickbase.com/v1/records/query`;
     const queryPayload = {
       from: QB_TABLE_ID,
-      where: `{6.EX.${enerfloDealId}}`,
+      where: `{6.EX.'${enerfloDealId}'}`,
       select: [3] // Field ID 3 is Record ID#
     };
     const queryResponse = await axios.post(queryUrl, queryPayload, { 
