@@ -5,11 +5,11 @@
  * to ensure all fields are correctly mapped to QuickBase.
  */
 
-const { mapWebhookToQuickBase } = require('./field-mapping');
+const { mapWebhookToQuickBase } = require('../src/field-mapping');
 const fs = require('fs');
 
 // Load the actual webhook payload
-const webhookPayload = JSON.parse(fs.readFileSync('./docs/webhook-actual.json', 'utf8'));
+const webhookPayload = JSON.parse(fs.readFileSync(__dirname + '/../docs/webhook-actual.json', 'utf8'));
 
 console.log('🧪 Testing Webhook Field Mapping...\n');
 
