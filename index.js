@@ -101,21 +101,19 @@ app.post('/webhook/enerflo', async (req, res) => {
     let enrichedPayload = req.body;
     let enrichedFields = {};
     
-    // Temporarily disable API enrichment to test core webhook functionality
-    console.log(`[${requestId}] Skipping API enrichment for testing with real data`);
-    
-    // if (ENERFLO_API_KEY) {
-    //   try {
-    //     console.log(`[${requestId}] Enriching webhook data with Enerflo API...`);
-    //     enrichedPayload = await enerfloEnrichment.enrichWebhookData(req.body);
-    //     enrichedFields = enerfloEnrichment.extractEnrichedFields(enrichedPayload);
-    //     console.log(`[${requestId}] Enriched with ${Object.keys(enrichedFields).length} additional fields`);
-    //   } catch (error) {
-    //     console.warn(`[${requestId}] API enrichment failed, continuing with webhook data only:`, error.message);
-    //   }
-    // } else {
-    //   console.log(`[${requestId}] No Enerflo API key provided, skipping enrichment`);
-    // }
+    // Enable API enrichment to fetch additional customer data
+    if (ENERFLO_API_KEY) {
+      try {
+        console.log(`[${requestId}] Enriching webhook data with Enerflo API...`);
+        enrichedPayload = await enerfloEnrichment.enrichWebhookData(req.body);
+        enrichedFields = enerfloEnrichment.extractEnrichedFields(enrichedPayload);
+        console.log(`[${requestId}] Enriched with ${Object.keys(enrichedFields).length} additional fields`);
+      } catch (error) {
+        console.warn(`[${requestId}] API enrichment failed, continuing with webhook data only:`, error.message);
+      }
+    } else {
+      console.log(`[${requestId}] No Enerflo API key provided, skipping enrichment`);
+    }
     
     // Map webhook data to QuickBase fields
     const quickbaseData = mapWebhookToQuickBase(enrichedPayload);

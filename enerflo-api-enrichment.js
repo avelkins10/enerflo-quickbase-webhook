@@ -71,6 +71,11 @@ class EnerfloAPIEnrichment {
         enrichedPayload.payload.salesRep = fullInstall.salesRep;
       }
       
+      // Extract welcome call/CallPilot data
+      if (fullInstall.welcomeCall) {
+        enrichedPayload.payload.welcomeCall = fullInstall.welcomeCall;
+      }
+      
       // Extract any other missing data
       if (fullInstall.installer) {
         enrichedPayload.payload.installer = fullInstall.installer;
@@ -122,6 +127,18 @@ class EnerfloAPIEnrichment {
       // Installer enrichment
       if (fullInstall.installer) {
         enrichedFields[70] = fullInstall.installer.id; // Installer Org ID
+      }
+      
+      // CallPilot/Welcome Call enrichment
+      if (fullInstall.welcomeCall) {
+        enrichedFields[170] = fullInstall.welcomeCall.id; // Welcome Call ID
+        enrichedFields[171] = fullInstall.welcomeCall.date; // Welcome Call Date
+        enrichedFields[172] = fullInstall.welcomeCall.duration; // Welcome Call Duration
+        enrichedFields[173] = fullInstall.welcomeCall.recordingUrl; // Welcome Call Recording URL
+        enrichedFields[174] = JSON.stringify(fullInstall.welcomeCall.questions); // Welcome Call Questions JSON
+        enrichedFields[175] = JSON.stringify(fullInstall.welcomeCall.answers); // Welcome Call Answers JSON
+        enrichedFields[176] = fullInstall.welcomeCall.agent; // Welcome Call Agent
+        enrichedFields[177] = fullInstall.welcomeCall.outcome; // Welcome Call Outcome
       }
       
       // Add any other enriched fields as needed
