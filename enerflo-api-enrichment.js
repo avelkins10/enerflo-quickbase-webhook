@@ -70,6 +70,7 @@ class EnerfloAPIEnrichment {
       });
       
       console.log(`✅ Successfully fetched CallPilot data for deal: ${dealId}`);
+      console.log(`📋 CallPilot response structure:`, JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
       console.log(`❌ CallPilot data not available for deal ${dealId}: ${error.response?.status || error.message}`);
