@@ -128,7 +128,7 @@ function transformWebhookToQuickBase(webhook) {
   const recordData = {
     // Basic Deal Info
     6: { value: deal.id }, // Enerflo Deal ID
-    64: { value: customer.id }, // Customer ID
+    64: { value: customer.id || '' }, // Customer ID
     16: { value: customer.firstName || '' }, // Customer First Name
     17: { value: customer.lastName || '' }, // Customer Last Name
     7: { value: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() }, // Customer Full Name
