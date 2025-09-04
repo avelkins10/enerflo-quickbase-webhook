@@ -149,9 +149,10 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
     throw new Error('QuickBase API credentials are not configured. Please set QB_REALM, QB_TABLE_ID, and QB_USER_TOKEN environment variables.');
   }
   
-  const url = `https://${QB_REALM}/db/${QB_TABLE_ID}`;
+  const url = `https://api.quickbase.com/v1/records`;
   const headers = {
     'Authorization': `QB-USER-TOKEN ${QB_USER_TOKEN}`,
+    'QB-Realm-Hostname': QB_REALM,
     'Content-Type': 'application/json',
     'User-Agent': 'Enerflo-QuickBase-Webhook/1.0.0'
   };
@@ -159,10 +160,17 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
   try {
     // First, try to find an existing record by Enerflo Deal ID (Field ID 6)
     console.log(`[${requestId}] Searching for existing record with Deal ID: ${enerfloDealId}`);
-    const queryUrl = `https://${QB_REALM}/db/${QB_TABLE_ID}?a=API_DoQuery&query={'6'.EX.'${enerfloDealId}'}&clist=3`;
-    const queryResponse = await axios.get(queryUrl, { 
+    const queryUrl = `https://api.quickbase.com/v1/records/query`;
+    const queryPayload = {
+      from: QB_TABLE_ID,
+      where: `{6.EX.'${enerfloDealId}'}`,
+      select: [3] // Field ID 3 is Record ID#
+    };
+    const queryResponse = await axios.post(queryUrl, queryPayload, { 
       headers: { 
         'Authorization': `QB-USER-TOKEN ${QB_USER_TOKEN}`,
+        'QB-Realm-Hostname': QB_REALM,
+        'Content-Type': 'application/json',
         'User-Agent': 'Enerflo-QuickBase-Webhook/1.0.0'
       } 
     });
