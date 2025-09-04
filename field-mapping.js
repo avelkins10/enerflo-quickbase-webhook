@@ -68,7 +68,10 @@ function mapWebhookToQuickBase(webhookPayload) {
   // ===== CORE DEAL & CUSTOMER INFO =====
   quickbaseRecord[6] = deal?.id; // Enerflo Deal ID
   quickbaseRecord[7] = `${customer?.firstName || ''} ${customer?.lastName || ''}`.trim(); // Customer Full Name
-  quickbaseRecord[10] = validateEmail(customer?.email); // Customer Email
+  // Customer Email - will be populated by API enrichment if not in webhook
+  if (customer?.email) {
+    quickbaseRecord[10] = validateEmail(customer.email);
+  }
   quickbaseRecord[11] = validatePhone(customer?.phone); // Customer Phone
   quickbaseRecord[12] = deal?.status || 'submitted'; // Project Status
   quickbaseRecord[13] = formatDateForQuickBase(new Date()); // Submission Date
@@ -421,18 +424,8 @@ function mapWebhookToQuickBase(webhookPayload) {
   }
   
   // ===== WELCOME CALL DATA =====
-  // Only set welcome call fields if welcome call data actually exists
-  if (state?.['lender-welcome-call'] && state['lender-welcome-call'].id) {
-    const welcomeCall = state['lender-welcome-call'];
-    quickbaseRecord[171] = welcomeCall.id; // Welcome Call ID
-    quickbaseRecord[172] = formatDateForQuickBase(welcomeCall.date); // Welcome Call Date
-    quickbaseRecord[173] = ensureNumber(welcomeCall.duration); // Welcome Call Duration
-    quickbaseRecord[174] = validateUrl(welcomeCall.recordingUrl); // Welcome Call Recording URL
-    quickbaseRecord[175] = JSON.stringify(welcomeCall.questions); // Welcome Call Questions JSON
-    quickbaseRecord[176] = JSON.stringify(welcomeCall.answers); // Welcome Call Answers JSON
-    quickbaseRecord[177] = welcomeCall.agent; // Welcome Call Agent
-    quickbaseRecord[178] = welcomeCall.outcome; // Welcome Call Outcome
-  }
+  // Welcome call data comes from CallPilot API, not from webhook payload
+  // This will be populated by the API enrichment process
   
   // ===== SETTER & CLOSER =====
   // These would need to be fetched from Enerflo API as they're not in webhook
