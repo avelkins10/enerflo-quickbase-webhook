@@ -70,7 +70,6 @@ class EnerfloAPIEnrichment {
       });
       
       console.log(`✅ Successfully fetched CallPilot data for deal: ${dealId}`);
-      console.log(`📋 CallPilot response structure:`, JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
       console.log(`❌ CallPilot data not available for deal ${dealId}: ${error.response?.status || error.message}`);
@@ -194,30 +193,40 @@ class EnerfloAPIEnrichment {
     if (enrichedPayload.enriched && enrichedPayload.callPilot) {
       const callPilot = enrichedPayload.callPilot;
       
-      // Map CallPilot data to QuickBase fields
-      if (callPilot.id) {
-        enrichedFields[170] = { value: callPilot.id }; // Welcome Call ID
-      }
-      if (callPilot.date) {
-        enrichedFields[171] = { value: callPilot.date }; // Welcome Call Date
-      }
-      if (callPilot.duration) {
-        enrichedFields[172] = { value: callPilot.duration }; // Welcome Call Duration
-      }
-      if (callPilot.recordingUrl) {
-        enrichedFields[173] = { value: callPilot.recordingUrl }; // Welcome Call Recording URL
-      }
-      if (callPilot.questions) {
-        enrichedFields[174] = { value: JSON.stringify(callPilot.questions) }; // Welcome Call Questions JSON
-      }
-      if (callPilot.answers) {
-        enrichedFields[175] = { value: JSON.stringify(callPilot.answers) }; // Welcome Call Answers JSON
-      }
-      if (callPilot.agent) {
-        enrichedFields[176] = { value: callPilot.agent }; // Welcome Call Agent
-      }
-      if (callPilot.outcome) {
-        enrichedFields[177] = { value: callPilot.outcome }; // Welcome Call Outcome
+      // Map CallPilot data to QuickBase fields based on actual API response structure
+      if (callPilot.enerflo_answers) {
+        const answers = callPilot.enerflo_answers;
+        
+        // Welcome Call ID - use deal ID as the call ID
+        enrichedFields[170] = { value: enrichedPayload.payload.deal.id }; // Welcome Call ID
+        
+        // Welcome Call Date - use current timestamp since API doesn't provide date
+        enrichedFields[171] = { value: new Date().toISOString() }; // Welcome Call Date
+        
+        // Welcome Call Duration - not available in API, leave empty
+        // enrichedFields[172] = { value: null }; // Welcome Call Duration
+        
+        // Welcome Call Recording URL
+        if (callPilot.video_url) {
+          enrichedFields[173] = { value: callPilot.video_url }; // Welcome Call Recording URL
+        }
+        
+        // Welcome Call Questions and Answers
+        if (callPilot.question_answers && Array.isArray(callPilot.question_answers)) {
+          const questions = callPilot.question_answers.map(qa => qa.question).filter(q => q);
+          const answers = callPilot.question_answers.map(qa => qa.selectedAnswer || qa.providedExternalAnswer).filter(a => a);
+          
+          enrichedFields[174] = { value: JSON.stringify(questions) }; // Welcome Call Questions JSON
+          enrichedFields[175] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
+        }
+        
+        // Welcome Call Agent - not available in API, leave empty
+        // enrichedFields[176] = { value: null }; // Welcome Call Agent
+        
+        // Welcome Call Outcome
+        if (callPilot.call_completed) {
+          enrichedFields[177] = { value: callPilot.call_completed }; // Welcome Call Outcome
+        }
       }
     }
     
