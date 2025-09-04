@@ -181,8 +181,8 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[42] = Boolean(state.hasDesign); // Has Design
     quickbaseRecord[43] = Boolean(state['complete-call-pilot-welcome-call']); // Welcome Call Completed
     quickbaseRecord[44] = Boolean(state.financingStatus === 'approved'); // Financing Approved
-    quickbaseRecord[45] = Boolean(state['site-survey']?.scheduleSiteSurvey); // Site Survey Scheduled
-    quickbaseRecord[46] = Boolean(state['additional-work-substage']?.isThereAdditionalWork); // Additional Work Needed
+    quickbaseRecord[45] = Boolean(state['site-survey']?.['schedule-site-survey']); // Site Survey Scheduled
+    quickbaseRecord[46] = Boolean(state['additional-work-substage']?.['is-there-additional-work']); // Additional Work Needed
     quickbaseRecord[153] = Boolean(state.hasCreatedProposal); // Has Created Proposal
     quickbaseRecord[154] = Boolean(state.hasApprovedContract); // Has Approved Contract
     quickbaseRecord[155] = Boolean(state.hasSubmittedProject); // Has Submitted Project
@@ -191,36 +191,36 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[158] = Boolean(state.hasSignedFinancingDocs); // Has Signed Financing Docs
     quickbaseRecord[159] = Boolean(state.noDocumentsToSign); // No Documents to Sign
     quickbaseRecord[160] = Boolean(state.contractApprovalEnabled); // Contract Approval Enabled
-    quickbaseRecord[161] = Boolean(state['sales-rep-confirmation']?.readyToSubmit); // Ready to Submit
-    quickbaseRecord[162] = state['sales-rep-confirmation']?.salesRepConfirmationMessage; // Sales Rep Confirmation
-    quickbaseRecord[163] = state['site-survey']?.siteSurveySelection; // Site Survey Selection
-    quickbaseRecord[164] = state['system-offset']?.newMoveIn; // New Move In
-    quickbaseRecord[166] = Boolean(state['system-offset']?.areThereAnyShadingConcerns); // Shading Concerns
-    quickbaseRecord[167] = Boolean(state['system-offset']?.isTheSystemOffsetBelow100); // System Offset Below 100%
+    quickbaseRecord[161] = Boolean(state['sales-rep-confirmation']?.['ready-to-submit']); // Ready to Submit
+    quickbaseRecord[162] = state['sales-rep-confirmation']?.['sales-rep-confirmation-message']; // Sales Rep Confirmation
+    quickbaseRecord[163] = state['site-survey']?.['site-survey-selection']; // Site Survey Selection
+    quickbaseRecord[164] = state['system-offset']?.['new-move-in']; // New Move In
+    quickbaseRecord[166] = Boolean(state['system-offset']?.['are-there-any-shading-concerns']); // Shading Concerns
+    quickbaseRecord[167] = Boolean(state['system-offset']?.['is-the-system-offset-below-100']); // System Offset Below 100%
   }
   
   // ===== ADDITIONAL WORK & CONTRACTORS =====
   if (state?.['additional-work-substage']) {
     const additionalWork = state['additional-work-substage'];
-    quickbaseRecord[47] = ensureNumber(additionalWork.treeRemovalCost); // Tree Removal Cost
-    quickbaseRecord[48] = additionalWork.treeRemovalContractor; // Tree Removal Contractor
-    quickbaseRecord[49] = ensureNumber(additionalWork.electricalUpgradesCount); // Electrical Upgrades Count
-    quickbaseRecord[50] = ensureNumber(additionalWork.electricalUpgradesTotal); // Electrical Upgrades Total
-    quickbaseRecord[51] = ensureNumber(additionalWork.metalRoofAdder); // Metal Roof Adder
-    quickbaseRecord[52] = ensureNumber(additionalWork.trenchingCost); // Trenching Cost
-    quickbaseRecord[108] = ensureNumber(additionalWork.treeTrimmingCost); // Tree Trimming Cost
-    quickbaseRecord[109] = additionalWork.treeTrimmingContractor; // Tree Trimming Contractor
-    quickbaseRecord[110] = validatePhone(additionalWork.treeContractorPhone); // Tree Contractor Phone
-    quickbaseRecord[111] = ensureNumber(additionalWork.electricalCostEach); // Electrical Cost Each
-    quickbaseRecord[112] = ensureNumber(additionalWork.metalRoofPPW); // Metal Roof PPW
-    quickbaseRecord[113] = ensureNumber(additionalWork.trenchingLinearFeet); // Trenching Linear Feet
-    quickbaseRecord[114] = additionalWork.trenchingType; // Trenching Type
-    quickbaseRecord[115] = ensureNumber(additionalWork.hvacCost); // HVAC Cost
-    quickbaseRecord[116] = additionalWork.hvacContractor; // HVAC Contractor
-    quickbaseRecord[117] = ensureNumber(additionalWork.subPanelCost); // Sub Panel Cost
-    quickbaseRecord[118] = ensureNumber(additionalWork.generatorCost); // Generator Cost
-    quickbaseRecord[119] = additionalWork.generatorType; // Generator Type
-    quickbaseRecord[120] = ensureNumber(additionalWork.reRoofCost); // Re Roof Cost
+    quickbaseRecord[47] = ensureNumber(additionalWork['tree-removal-cost']); // Tree Removal Cost
+    quickbaseRecord[48] = additionalWork['tree-removal-contractor']; // Tree Removal Contractor
+    quickbaseRecord[49] = ensureNumber(additionalWork['electrical-upgrades-count']); // Electrical Upgrades Count
+    quickbaseRecord[50] = ensureNumber(additionalWork['electrical-upgrades-total']); // Electrical Upgrades Total
+    quickbaseRecord[51] = ensureNumber(additionalWork['metal-roof-adder']); // Metal Roof Adder
+    quickbaseRecord[52] = ensureNumber(additionalWork['trenching-cost']); // Trenching Cost
+    quickbaseRecord[108] = ensureNumber(additionalWork['tree-trimming-cost']); // Tree Trimming Cost
+    quickbaseRecord[109] = additionalWork['tree-trimming-contractor']; // Tree Trimming Contractor
+    quickbaseRecord[110] = validatePhone(additionalWork['tree-removal-contractor-phone-number']); // Tree Contractor Phone
+    quickbaseRecord[111] = ensureNumber(additionalWork['electrical-cost-each']); // Electrical Cost Each
+    quickbaseRecord[112] = ensureNumber(additionalWork['metal-roof-ppw']); // Metal Roof PPW
+    quickbaseRecord[113] = ensureNumber(additionalWork['trenching-linear-feet']); // Trenching Linear Feet
+    quickbaseRecord[114] = additionalWork['trenching-type']; // Trenching Type
+    quickbaseRecord[115] = ensureNumber(additionalWork['hvac-cost']); // HVAC Cost
+    quickbaseRecord[116] = additionalWork['hvac-contractor-name']; // HVAC Contractor
+    quickbaseRecord[117] = ensureNumber(additionalWork['sub-panel-cost']); // Sub Panel Cost
+    quickbaseRecord[118] = ensureNumber(additionalWork['generator-cost']); // Generator Cost
+    quickbaseRecord[119] = additionalWork['generator-type']; // Generator Type
+    quickbaseRecord[120] = ensureNumber(additionalWork['re-roof-cost']); // Re Roof Cost
   }
   
   // ===== ADDER MAPPING (Dynamic) =====
