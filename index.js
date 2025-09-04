@@ -208,8 +208,12 @@ async function upsertQuickBaseRecord(enerfloDealId, fields, requestId) {
         data: [fields]
       };
       
+      console.log(`[${requestId}] QuickBase create payload:`, JSON.stringify(createPayload, null, 2));
+      console.log(`[${requestId}] QuickBase headers:`, JSON.stringify(headers, null, 2));
+      
       const createResponse = await axios.post(url, createPayload, { headers });
       
+      console.log(`[${requestId}] QuickBase create response status:`, createResponse.status);
       console.log(`[${requestId}] QuickBase create response:`, JSON.stringify(createResponse.data, null, 2));
       
       if (createResponse.data.metadata && createResponse.data.metadata.createdRecordIds && createResponse.data.metadata.createdRecordIds.length > 0) {
