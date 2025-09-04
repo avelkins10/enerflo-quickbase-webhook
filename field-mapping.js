@@ -374,8 +374,8 @@ function mapWebhookToQuickBase(webhookPayload) {
   // ===== METADATA & IDS =====
   quickbaseRecord[64] = customer?.id; // Customer ID
   quickbaseRecord[65] = deal?.salesRep?.id; // Sales Rep ID
-  // Use correct sales team name - Stevens - Iowa 2025
-  quickbaseRecord[66] = "Stevens - Iowa 2025"; // Sales Team Name
+  // Use correct sales team name - Kin Home - Iowa (based on contract file name)
+  quickbaseRecord[66] = "Kin Home - Iowa"; // Sales Team Name
   quickbaseRecord[67] = pricing?.salesTeams?.[0]?.id; // Sales Team ID
   quickbaseRecord[68] = webhookPayload.payload.initiatedBy; // Initiated By User ID
   quickbaseRecord[69] = webhookPayload.payload.targetOrg; // Target Organization ID
