@@ -20,14 +20,34 @@ class EnerfloAPIEnrichment {
    */
   async getFullInstallObject(dealId) {
     try {
-      const response = await axios.get(`${this.baseURL}/api/v3/installs/find/${dealId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Try multiple API endpoints to find the correct one
+      const endpoints = [
+        `/api/v3/installs/find/${dealId}`,
+        `/api/v3/deals/${dealId}`,
+        `/api/v3/installs/${dealId}`,
+        `/api/v1/installs/${dealId}`,
+        `/api/v1/deals/${dealId}`
+      ];
       
-      return response.data;
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`🔍 Trying API endpoint: ${endpoint}`);
+          const response = await axios.get(`${this.baseURL}${endpoint}`, {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log(`✅ Successfully fetched data from: ${endpoint}`);
+          return response.data;
+        } catch (endpointError) {
+          console.log(`❌ Endpoint ${endpoint} failed: ${endpointError.response?.status || endpointError.message}`);
+          continue;
+        }
+      }
+      
+      throw new Error('All API endpoints failed');
     } catch (error) {
       console.error('Failed to fetch full install object:', error.message);
       throw new Error(`Enerflo API enrichment failed: ${error.message}`);
