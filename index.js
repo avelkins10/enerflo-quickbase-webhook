@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: '1.0.2-CallPilot-Debug',
+    version: '1.0.3-CallPilot-SurveyID-Fixed',
     health: {
       overall: 100,
       webhook: 100,
@@ -106,7 +106,8 @@ app.post('/webhook/enerflo', async (req, res) => {
       try {
         console.log(`[${requestId}] Enriching webhook data with Enerflo API...`);
         enrichedPayload = await enerfloEnrichment.enrichWebhookData(req.body);
-        enrichedFields = enerfloEnrichment.extractEnrichedFields(enrichedPayload);
+        const surveyId = enrichedPayload.fullInstall?.survey_id;
+        enrichedFields = enerfloEnrichment.extractEnrichedFields(enrichedPayload, surveyId);
         console.log(`[${requestId}] Enriched with ${Object.keys(enrichedFields).length} additional fields`);
       } catch (error) {
         console.warn(`[${requestId}] API enrichment failed, continuing with webhook data only:`, error.message);

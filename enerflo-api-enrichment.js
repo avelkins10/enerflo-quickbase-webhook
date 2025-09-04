@@ -55,24 +55,24 @@ class EnerfloAPIEnrichment {
   }
 
   /**
-   * Get CallPilot/Welcome Call data from Enerflo API
-   * @param {string} dealId - The deal ID from the webhook payload
+   * Get CallPilot/Welcome Call data from Enerflo API using survey ID
+   * @param {string} surveyId - The survey ID from the install object
    * @returns {Object} CallPilot data with welcome call details
    */
-  async getCallPilotData(dealId) {
+  async getCallPilotData(surveyId) {
     try {
-      console.log(`🔍 Fetching CallPilot data for deal: ${dealId}`);
-      const response = await axios.get(`${this.baseURL}/api/v1/callpilot/answers/${dealId}`, {
+      console.log(`🔍 Fetching CallPilot data for survey: ${surveyId}`);
+      const response = await axios.get(`${this.baseURL}/api/v1/callpilot/answers/${surveyId}`, {
         headers: {
           'api-key': this.apiKey,
           'Content-Type': 'application/json'
         }
       });
       
-      console.log(`✅ Successfully fetched CallPilot data for deal: ${dealId}`);
+      console.log(`✅ Successfully fetched CallPilot data for survey: ${surveyId}`);
       return response.data;
     } catch (error) {
-      console.log(`❌ CallPilot data not available for deal ${dealId}: ${error.response?.status || error.message}`);
+      console.log(`❌ CallPilot data not available for survey ${surveyId}: ${error.response?.status || error.message}`);
       return null; // Return null if no CallPilot data is available
     }
   }
@@ -91,8 +91,9 @@ class EnerfloAPIEnrichment {
       // Get full install object from API
       const fullInstall = await this.getFullInstallObject(dealId);
       
-      // Get CallPilot data from separate endpoint
-      const callPilotData = await this.getCallPilotData(dealId);
+      // Get CallPilot data using survey ID from the install object
+      const surveyId = fullInstall.survey_id;
+      const callPilotData = surveyId ? await this.getCallPilotData(surveyId) : null;
       
       // Create enriched payload
       const enrichedPayload = {
@@ -147,9 +148,10 @@ class EnerfloAPIEnrichment {
   /**
    * Extract enriched data for QuickBase mapping
    * @param {Object} enrichedPayload - Enriched webhook payload
+   * @param {string} surveyId - Survey ID for CallPilot data
    * @returns {Object} Additional fields for QuickBase
    */
-  extractEnrichedFields(enrichedPayload) {
+  extractEnrichedFields(enrichedPayload, surveyId) {
     const enrichedFields = {};
     
     if (enrichedPayload.enriched && enrichedPayload.fullInstall) {
@@ -206,11 +208,13 @@ class EnerfloAPIEnrichment {
       if (callPilot.enerflo_answers) {
         const answers = callPilot.enerflo_answers;
         
-        // Welcome Call ID - use deal ID as the call ID
-        enrichedFields[170] = { value: enrichedPayload.payload.deal.id }; // Welcome Call ID
+        // Welcome Call ID - use survey ID as the call ID
+        enrichedFields[170] = { value: surveyId }; // Welcome Call ID
         
-        // Welcome Call Date - use current timestamp since API doesn't provide date
-        enrichedFields[171] = { value: new Date().toISOString() }; // Welcome Call Date
+        // Welcome Call Date - use call_completed date from API
+        if (callPilot.call_completed) {
+          enrichedFields[171] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
+        }
         
         // Welcome Call Duration - not available in API, leave empty
         // enrichedFields[172] = { value: null }; // Welcome Call Duration
@@ -229,8 +233,10 @@ class EnerfloAPIEnrichment {
           enrichedFields[175] = { value: JSON.stringify(answers) }; // Welcome Call Answers JSON
         }
         
-        // Welcome Call Agent - not available in API, leave empty
-        // enrichedFields[176] = { value: null }; // Welcome Call Agent
+        // Welcome Call Agent - get from enerflo_answers
+        if (answers.agent_name) {
+          enrichedFields[176] = { value: answers.agent_name }; // Welcome Call Agent
+        }
         
         // Welcome Call Outcome
         if (callPilot.call_completed) {
@@ -240,11 +246,13 @@ class EnerfloAPIEnrichment {
         // Fallback: Try to map CallPilot data even if structure is different
         console.log('🔍 CallPilot data found but no enerflo_answers, trying fallback mapping...');
         
-        // Welcome Call ID - use deal ID as the call ID
-        enrichedFields[170] = { value: enrichedPayload.payload.deal.id }; // Welcome Call ID
+        // Welcome Call ID - use survey ID as the call ID
+        enrichedFields[170] = { value: surveyId }; // Welcome Call ID
         
-        // Welcome Call Date - use current timestamp
-        enrichedFields[171] = { value: new Date().toISOString() }; // Welcome Call Date
+        // Welcome Call Date - use call_completed date if available
+        if (callPilot.call_completed) {
+          enrichedFields[171] = { value: new Date(callPilot.call_completed).toISOString() }; // Welcome Call Date
+        }
         
         // Try to map other available fields
         if (callPilot.video_url) {
