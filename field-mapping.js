@@ -233,33 +233,48 @@ function mapWebhookToQuickBase(webhookPayload) {
     
     // Map up to 5 adders to dedicated fields
     allAdders.slice(0, 5).forEach((adder, index) => {
-      let fieldBase, categoryField;
+      let nameField, costField, categoryField, ppwField, quantityField;
       
       // Handle the special case for Adder 3 Category (field 217)
       if (index === 0) { // Adder 1
-        fieldBase = 192;
-        categoryField = 194;
+        nameField = 192;    // Adder 1 Name
+        costField = 193;    // Adder 1 Cost
+        categoryField = 194; // Adder 1 Category
+        ppwField = 195;     // Adder 1 PPW
+        quantityField = 196; // Adder 1 Quantity
       } else if (index === 1) { // Adder 2
-        fieldBase = 197;
-        categoryField = 199;
+        nameField = 197;    // Adder 2 Name
+        costField = 198;    // Adder 2 Cost
+        categoryField = 199; // Adder 2 Category
+        ppwField = 201;     // Adder 2 PPW
+        quantityField = 200; // Adder 2 Quantity
       } else if (index === 2) { // Adder 3
-        fieldBase = 202;
-        categoryField = 217; // Special case: Adder 3 Category is field 217
+        nameField = 202;    // Adder 3 Name
+        costField = 204;    // Adder 3 Cost
+        categoryField = 217; // Adder 3 Category (special case)
+        ppwField = 206;     // Adder 3 PPW
+        quantityField = 205; // Adder 3 Quantity
       } else if (index === 3) { // Adder 4
-        fieldBase = 207;
-        categoryField = 208;
+        nameField = 207;    // Adder 4 Name
+        costField = 209;    // Adder 4 Cost
+        categoryField = 208; // Adder 4 Category
+        ppwField = 211;     // Adder 4 PPW
+        quantityField = 210; // Adder 4 Quantity
       } else if (index === 4) { // Adder 5
-        fieldBase = 212;
-        categoryField = 213;
+        nameField = 212;    // Adder 5 Name
+        costField = 214;    // Adder 5 Cost
+        categoryField = 213; // Adder 5 Category
+        ppwField = 216;     // Adder 5 PPW
+        quantityField = 215; // Adder 5 Quantity
       }
       
-      quickbaseRecord[fieldBase] = adder.displayName; // Adder Name
-      quickbaseRecord[fieldBase + 2] = ensureNumber(adder.amount); // Adder Cost (skip 1 for category)
+      quickbaseRecord[nameField] = adder.displayName; // Adder Name
+      quickbaseRecord[costField] = ensureNumber(adder.amount); // Adder Cost
       // Determine category based on whether it's a value adder or system adder
       const isValueAdder = proposalPricing.calculatedValueAdders?.includes(adder);
       quickbaseRecord[categoryField] = isValueAdder ? 'VALUE' : 'SYSTEM'; // Adder Category
-      quickbaseRecord[fieldBase + 3] = ensureNumber(adder.ppw); // Adder PPW
-      quickbaseRecord[fieldBase + 4] = ensureNumber(adder.quantity || 1); // Adder Quantity
+      quickbaseRecord[ppwField] = ensureNumber(adder.ppw); // Adder PPW
+      quickbaseRecord[quantityField] = ensureNumber(adder.quantity || 1); // Adder Quantity
     });
   }
   
