@@ -5,18 +5,11 @@
  * to the corresponding QuickBase fields, ensuring perfect data transfer.
  */
 
-// Helper function to format dates for QuickBase (MM-DD-YYYY HH:MM AM/PM)
+// Helper function to format dates for QuickBase (ISO format)
 function formatDateForQuickBase(date) {
   if (!date) return null;
   const d = new Date(date);
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${month}-${day}-${year} ${displayHours}:${minutes} ${ampm}`;
+  return d.toISOString();
 }
 
 // Helper function to ensure numeric values are numbers
@@ -24,6 +17,12 @@ function ensureNumber(value) {
   if (value === null || value === undefined) return null;
   const num = Number(value);
   return isNaN(num) ? null : num;
+}
+
+// Helper function to wrap field values for QuickBase API
+function wrapFieldValue(value) {
+  if (value === null || value === undefined) return null;
+  return { value: value };
 }
 
 function mapWebhookToQuickBase(webhookPayload) {
@@ -342,14 +341,16 @@ function mapWebhookToQuickBase(webhookPayload) {
   quickbaseRecord[218] = null; // Setter (lead owner)
   quickbaseRecord[219] = null; // Closer (sales rep)
   
-  // ===== CLEAN UP NULL/UNDEFINED VALUES =====
+  // ===== CLEAN UP NULL/UNDEFINED VALUES AND WRAP FOR QUICKBASE =====
+  const cleanedRecord = {};
   Object.keys(quickbaseRecord).forEach(key => {
-    if (quickbaseRecord[key] === null || quickbaseRecord[key] === undefined) {
-      delete quickbaseRecord[key];
+    const value = quickbaseRecord[key];
+    if (value !== null && value !== undefined) {
+      cleanedRecord[key] = wrapFieldValue(value);
     }
   });
   
-  return quickbaseRecord;
+  return cleanedRecord;
 }
 
 module.exports = { mapWebhookToQuickBase };
