@@ -366,6 +366,8 @@ async function upsertRecord(dealId, recordData) {
     };
 
     console.log(`🔄 ${existingRecordId ? 'Updating' : 'Creating'} record for deal ${dealId}`);
+    console.log(`📊 Payload size: ${JSON.stringify(payload).length} characters`);
+    console.log(`📊 Number of fields: ${Object.keys(recordData).length}`);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -375,11 +377,24 @@ async function upsertRecord(dealId, recordData) {
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`❌ QuickBase API Error: ${response.status} ${response.statusText}`);
+      console.error(`❌ Error Details: ${errorText}`);
       throw new Error(`QuickBase operation failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
     const result = await response.json();
-    console.log(`✅ Successfully ${existingRecordId ? 'updated' : 'created'} record for deal ${dealId}`);
+    console.log(`✅ QuickBase API Response:`, JSON.stringify(result, null, 2));
+    
+    // Check if record was actually created
+    if (result.metadata?.createdRecordIds?.length > 0) {
+      console.log(`✅ Successfully created record ${result.metadata.createdRecordIds[0]} for deal ${dealId}`);
+    } else if (result.metadata?.updatedRecordIds?.length > 0) {
+      console.log(`✅ Successfully updated record ${result.metadata.updatedRecordIds[0]} for deal ${dealId}`);
+    } else {
+      console.warn(`⚠️  No record created or updated for deal ${dealId}`);
+      console.warn(`⚠️  QuickBase response:`, JSON.stringify(result, null, 2));
+    }
+    
     return result;
     
   } catch (error) {
