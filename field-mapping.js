@@ -389,6 +389,9 @@ function mapWebhookToQuickBase(webhookPayload) {
     quickbaseRecord[168] = design.id; // Design ID
     quickbaseRecord[169] = design.source?.tool; // Design Tool
     quickbaseRecord[170] = design.source?.id; // Design Source ID
+    // Design Image URL - get the first design file URL if available
+    const designImageUrl = design.files && design.files.length > 0 ? design.files[0].url : null;
+    quickbaseRecord[220] = validateUrl(designImageUrl); // Design Image URL
   }
   
   // ===== WELCOME CALL DATA =====
