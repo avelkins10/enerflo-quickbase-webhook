@@ -112,6 +112,10 @@ app.post('/webhook/enerflo', async (req, res) => {
     Object.assign(quickbaseData, enrichedFields);
     
     console.log(`[${requestId}] Mapped ${Object.keys(quickbaseData).length} fields to QuickBase`);
+    console.log(`[${requestId}] QuickBase data sample:`, JSON.stringify(Object.keys(quickbaseData).slice(0, 5).reduce((obj, key) => {
+      obj[key] = quickbaseData[key];
+      return obj;
+    }, {}), null, 2));
     
     // Create/update QuickBase record
     const quickbaseRecordId = await upsertQuickBaseRecord(deal.id, quickbaseData, requestId);
