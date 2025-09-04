@@ -1,6 +1,6 @@
 {
   "name": "enerflo-quickbase-webhook",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Enhanced Enerflo webhook integration with QuickBase - Full field mapping",
   "main": "index.js",
   "scripts": {
