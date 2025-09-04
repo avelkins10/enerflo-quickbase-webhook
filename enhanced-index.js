@@ -249,7 +249,6 @@ function transformWebhookToQuickBase(webhook) {
     96: { value: JSON.stringify(proposal?.pricingOutputs?.rebates || []) }, // Rebates JSON
     62: { value: deal.state?.['notes-comments'] || '' }, // Sales Notes
     63: { value: deal.state?.['system-offset']?.['layout-preferences'] || '' }, // Layout Preferences
-    165: { value: deal.state?.['system-offset']?.['layout-preferences'] || '' }, // Layout Preferences2
     124: { value: JSON.stringify(deal.state?.['additional-work-substage']?.['additional-work'] || []) }, // Additional Work Types
     123: { value: JSON.stringify(proposal?.design?.consumptionProfile?.consumption || []) }, // Monthly Consumption
     121: { value: JSON.stringify(proposal?.pricingOutputs?.adderPricing?.valueAdders?.map(a => a.fieldInputs) || []) }, // Adder Dynamic Inputs JSON
